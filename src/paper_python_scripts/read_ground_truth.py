@@ -1,4 +1,4 @@
-# !/usr/bin/python
+# !/usr/bin/python3
 #
 # Example code to read and plot the ground truth data.
 #
@@ -24,7 +24,7 @@ import scipy.interpolate
 def main(args):
 
     if len(sys.argv) < 3:
-        print 'Please specify ground truth and covariance files'
+        print("Please specify ground truth and covariance files")
         return 1
 
     gt = np.loadtxt(sys.argv[1], delimiter = ",")

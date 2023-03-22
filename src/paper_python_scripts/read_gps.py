@@ -1,4 +1,4 @@
-# !/usr/bin/python
+# !/usr/bin/python3
 #
 # Example code to read and plot the gps data.
 #
@@ -14,7 +14,7 @@ import numpy as np
 def main(args):
 
     if len(sys.argv) < 2:
-        print 'Please specify gps file'
+        print('Please specify gps file')
         return 1
 
     gps = np.loadtxt(sys.argv[1], delimiter = ",")
