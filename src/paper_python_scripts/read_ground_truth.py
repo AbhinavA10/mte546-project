@@ -33,7 +33,7 @@ def main(args):
     t_cov = cov[:, 0]
 
     # Note: Interpolation is not needed, this is done as a convience
-    interp = scipy.interpolate.interp1d(gt[:, 0], gt[:, 1:], kind='nearest', axis=0)
+    interp = scipy.interpolate.interp1d(gt[:, 0], gt[:, 1:], kind='nearest', axis=0, fill_value="extrapolate")
     pose_gt = interp(t_cov)
 
     # NED (North, East Down)
