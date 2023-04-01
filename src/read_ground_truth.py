@@ -9,6 +9,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.interpolate
+import utils
 
 # Accept a filepath to the CSV of interest and return Numpy array with data
 def read_ground_truth(dataset_date):
@@ -24,16 +25,17 @@ def read_ground_truth(dataset_date):
     pose_gt = interp(t_cov)
     t_cov = t_cov-t_cov[0] # Make timestamps relative
 
-    return pose_gt, t_cov
+    return t_cov, pose_gt
 
 # Accepta a filepath to the CSV of interest and plot the FOG data
 def plot_ground_truth(filepath):
-    pose_gt,t = read_ground_truth(filepath)
+    t, pose_gt = read_ground_truth(filepath)
 
-    # NED (North, East Down)
-    x = pose_gt[:, 0]
-    y = pose_gt[:, 1]
+    x = pose_gt[:, 0] # North
+    y = pose_gt[:, 1] # East
     yaw = pose_gt[:, 5]
+
+    utils.export_to_kml(None,None,x,y)
 
     plt.figure()
     plt.scatter(y, x, s=1, linewidth=0)
@@ -42,11 +44,11 @@ def plot_ground_truth(filepath):
     plt.xlabel('East [m]')
     plt.ylabel('North [m]')
     
-    plt.figure()
-    plt.plot(t/1000000.0, yaw)
-    plt.title('Ground Truth Heading')
-    plt.xlabel('Time [s]')
-    plt.ylabel('Angle [rad]')
+    # plt.figure()
+    # plt.plot(t/1000000.0, yaw)
+    # plt.title('Ground Truth Heading')
+    # plt.xlabel('Time [s]')
+    # plt.ylabel('Angle [rad]')
     plt.show()
 
 if __name__ == "__main__":
