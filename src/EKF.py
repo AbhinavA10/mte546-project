@@ -124,7 +124,6 @@ def plot_gps(filepath, use_RTK):
 # accept a file path to IMU csv of interest and provide access to it
 def read_IMU(filepath):
     ms25 = np.loadtxt(filepath, delimiter = ",")
-    
     return ms25
 
 # plot desired IMU data
@@ -209,6 +208,7 @@ def wraptopi(x):
         x = x + (np.floor(x / (-2 * np.pi)) + 1) * 2 * np.pi
     return x
 
+
 def motion_jacobian(ax, ay, psidot, delta_t):
     x_k, y_k, x_dot_k, y_dot_k, psi_k = sp.symbols('x_k, y_k, x_dot_k, y_dot_k, psi_k', real=True)
 
@@ -220,7 +220,49 @@ def motion_jacobian(ax, ay, psidot, delta_t):
 
     f = sp.Matrix([f1, f2, f3, f4, f5]).jacobian([x_k, y_k, x_dot_k, y_dot_k, psi_k])
 
+    # TO DO sub in previous x_est...
+    # Output of the function would be a NxN np.array of floating point numbers
+
     return f
+
+# GPS goes here (x,y)
+# wheel velocities goes here (xdot, ydot)
+# heading??? might want to update it somehow?
+
+def measurement_update(lk, rk, bk, P_check, x_check):
+    # 3.1 Compute measurement Jacobian using the landmarks and the current estimated state.
+    H = measurement_jacobian(lk[0], lk[1], x_check)
+
+    # 3.2 Compute the Kalman gain.
+    K = np.matmul(np.matmul( P_check, np.transpose(H)),
+                  np.linalg.inv(np.matmul((np.matmul(H,P_check)), np.transpose(H)) + R))
+
+    n_w_L = np.random.multivariate_normal([0,0], Q)
+
+    x_check[2] = wraptopi(x_check[2])
+    
+    # 3.3 Correct the predicted state.
+    # NB : Make sure to use wraptopi() when computing the bearing estimate!
+    h = np.array([((lk[0] - x_check[0] - d[0]*np.cos(x_check[2]))**2
+                 + (lk[1] - x_check[1] - d[0]*np.sin(x_check[2]))**2)**0.5,
+                   (np.arctan2(lk[1] - x_check[1] - d[0]*np.sin(x_check[2]),
+                       lk[0] - x_check[0] - d[0]*np.cos(x_check[2])) - x_check[2])])
+
+    y_check = h
+
+    y_check[1] = wraptopi(y_check[1])
+    
+    y = np.array([rk, bk])
+
+    x_check = x_check + np.matmul(K,(y - y_check))
+    
+    x_check[2] = wraptopi(x_check[2])
+
+    # 3.4 Correct the covariance.
+    P_check = np.matmul((np.identity(3) - np.matmul(K,H)),P_check)
+
+    return x_check, P_check
+
 
 # PLEASE ENSURE THAT ALL STATES AND INPUTS TO THE SYSTEM ARE IN THE GLOBAL FRAME OF REFERENCE :-)
 # PLEASE MAKE USE OF WRAPTOPI() WHEN SUPPLYING ROBOT HEADING OR ROBOT ANGULAR VELOCITY
@@ -232,7 +274,7 @@ if __name__ == "__main__":
 
     ######################### 0. INITIALIZE IMPORTANT VARIABLES #################################################################
 
-    # IMPORTANT TO-DO: NEED TO INITIALIZE Q AND R COVARIANCE MATRICES
+    # TO-DO: NEED TO INITIALIZE Q AND R COVARIANCE MATRICES
 
     Q = np.diag([]) # input noise covariance
     R = np.diag([])  # measurement noise covariance
@@ -240,6 +282,8 @@ if __name__ == "__main__":
     # TO-DO: NEED TO DEFINE GROUND TRUTH ARRAYS & ARRAY OF MEASUREMENTS
     x_true = ...
     y_true = ...
+
+    # MEASUREMENTS CAN BE HELD AS A???
     measurements = ...
 
     # TO-DO: NEED TO DEFINE LENGTH OF STATES WE'LL BE ESTIMATING
@@ -261,61 +305,57 @@ if __name__ == "__main__":
     for k in range(1, len(t)):  # Start at 1 because we have initial prediction from ground truth.
 
         delta_t = t[k] - t[k - 1]  # time step (difference between timestamps)
+    
+        # TO-DO: - READ IN IMU FILE
+        #        - APPLY TRANSFORMATION/ROTATION MATRIX TO ACCELERATION
+        
+        # acc_vec_imu = np.array([ax, 0])
+        # np.matmul(rotation matrix, acc_vec_imu)
 
-        # TO-DO: I THINK WE HAVE COME TO THE CONSENSUS THAT WE'RE NOT USING ADDITIVE NOISE BUT IF WE ARE WE
-        #        NEED TO DEFINE IT HERE WITH APPROPRIATE DIMENSIONING. MULTIVARIATE NORMAL WITH A SCALED
-        #        IDENTITY COVARIANCE RETURNS AN Nx1 VECTOR OF 0-MEAN GAUSSIAN NOISE DEPENDING ON DIAG. OF R MATRIX
-            
-        w_v_k = np.random.multivariate_normal([0,0], R)
+        ax     = ...
+        ay     = ...
+        psidot = ...
 
         # 1-1. INITIAL UPDATE OF THE ROBOT STATE USING MEASUREMENTS (IMU, ETC.) 
-        x_check = x_est[k-1] + delta_t*...
+        x_check = x_est[k-1] + delta_t*np.array([x_dot_k + 0.5*ax*delta_t,
+                                                 y_dot_k + 0.5*ay*delta_t,
+                                                 ax,
+                                                 ay,
+                                                 psidot])
 
         # 1-2 Linearize Motion Model
         # Compute the Jacobian of f w.r.t. the last state.
-
         # TO-DO: DETERMINE MOTION MODEL EQUATIONS
-        # Sam's note: where to get ax, ay, and psidot? Does it even matter if it's removed by the Jacobian?
         x_k, y_k, x_dot_k, y_dot_k, psi_k = sp.symbols('x_k, y_k, x_dot_k, y_dot_k, psi_k', real=True)
 
-        f1 = x_k     + x_dot_k*delta_t + 0.5*ax*delta_t^2
-        f2 = y_k     + y_dot_k*delta_t + 0.5*ay*delta_t^2
-        f3 = x_dot_k + ax*delta_t
-        f4 = y_dot_k + ay*delta_t
-        f5 = psi_k   + psidot*delta_t
+        f1 = x_k      +  x_dot_k*delta_t + 0.5*ax*delta_t^2
+        f2 = y_k      +  y_dot_k*delta_t + 0.5*ay*delta_t^2
+        f3 = x_dot_k  +  ax*delta_t
+        f4 = y_dot_k  +  ay*delta_t
+        f5 = psi_k    +  psidot*delta_t
 
         f = sp.Matrix([f1, f2, f3, f4, f5]).jacobian([x_k, y_k, x_dot_k, y_dot_k, psi_k])
         F = np.array(f.subs([(x_k,      x_est[k-1,0]),
                              (y_k,      x_est[k-1,1]),
                              (x_dot_k,  x_est[k-1,2]),
                              (y_dot_k,  x_est[k-1,3]),
-                             (psi_k,    x_est[k-1,4]),
+                             (psi_k,    x_est[k-1,4])
                             ])).astype(np.float64)
         
-
-        # IGNORE FOR NOW.....
-        # Compute the Jacobian w.r.t. the noise variables.
-        # n_v, n_w = sp.symbols('n_v n_w', real=True)
-        
-        # l1 = x_k     + delta_t*(v[k]  + n_v)*sp.cos(theta_k)
-        # l2 = y_k     + delta_t*(v[k]  + n_v)*sp.sin(theta_k)
-        # l3 = theta_k + delta_t*(om[k] + n_w)
-
-        # l_small = sp.Matrix([l1, l2, l3]).jacobian([n_v, n_w])
-
-        # L = np.array(l_small.subs([(x_k,     x_est[k-1,0]),
-        #                         (y_k,     x_est[k-1,1]),
-        #                         (theta_k, x_est[k-1,2]),
-        #                         (n_v,     w_v_k[0]),
-        #                         (n_w,     w_v_k[1])])).astype(np.float64)
-        
         # 2. Propagate uncertainty by updating the covariance
-        P_check = np.matmul(np.matmul(F,P_est[k-1]),np.transpose(F)) + np.matmul(np.matmul(L,Q),np.transpose(L))
-
-        # 3. Update state estimate using available landmark measurements r[k], b[k].
-        # for i in range(len(r[k])):
-        #     x_check, P_check = measurement_update(l[i], r[k,i], b[k,i], P_check, x_check)
+        P_check = np.matmul(np.matmul(F,P_est[k-1]),np.transpose(F)) + Q
+        
+        # TO-DO: - GRAB THE DATA BASED ON TIMESTAMPS AND SAMPLING RATES....
+        #        - THEN, UPDATE MEASUREMENTS ACCORDING TO WHICH PIECE OF DATA YOU GET
+        for i in range(len(r[k])):
+            x_check, P_check = measurement_update(l[i], r[k,i], b[k,i], P_check, x_check)
 
         # Set final state predictions for this kth timestep.
         x_est[k] = x_check
         P_est[k] = P_check
+
+# TO-DO: PLOT DELIVERABLES #########################################################################################
+
+# 1. PLOT FUSED LOCATION DATA
+# 2. PLOT MSE FROM GROUND TRUTH (EUCLIDEAN DISTANCE)
+# 3. PLOT GROUND TRUTH FOR COMPARISON
