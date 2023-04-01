@@ -1,17 +1,11 @@
-# !/usr/bin/python3
-#
-# Example code to read and plot the ground truth data.
+# Read and plot the ground truth data.
 #
 # Note: The ground truth data is provided at a high rate of about 100 Hz. To
 # generate this high rate ground truth, a SLAM solution was used. Nodes in the
 # SLAM graph were not added at 100 Hz, but rather about every 8 meters. In
 # between the nodes in the SLAM graph, the odometry was used to interpolate and
 # provide a high rate ground truth.
-#
-# To call:
-#
-#   python read_ground_truth.py
-#
+
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.interpolate
