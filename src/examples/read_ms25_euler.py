@@ -14,7 +14,7 @@ import numpy as np
 def main(args):
 
     if len(sys.argv) < 2:
-        print 'Please specify microstrain file'
+        print ('Please specify microstrain file')
         return 1
 
     euler = np.loadtxt(sys.argv[1], delimiter = ",")

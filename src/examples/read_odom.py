@@ -14,7 +14,7 @@ import numpy as np
 def main(args):
 
     if len(sys.argv) < 2:
-        print 'Please specify odometry file'
+        print ('Please specify odometry file')
         return 1
 
     odom = np.loadtxt(sys.argv[1], delimiter = ",")

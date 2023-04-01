@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 
 # Accept a filepath to the CSV of interest and return Numpy array with data
 def read_FOG(filepath):
-    data = pd.read_csv("dataset/2013-04-05_sen/kvh.csv", header=None)
+    data = pd.read_csv("dataset/2013-04-05/kvh.csv", header=None)
     data = data - [data.iloc[0,0], 0]
     data[2] = data[1].rolling(1000).mean()
     return(data.to_numpy())
