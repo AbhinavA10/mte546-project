@@ -52,4 +52,4 @@ def plot_ground_truth(filepath):
     plt.show()
 
 if __name__ == "__main__":
-    plot_ground_truth("2013-04-05")
+    plot_ground_truth("2012-08-04")

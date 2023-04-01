@@ -48,7 +48,7 @@ def local_to_gps_coord(x: list, y:list):
 
 def _format_lat_lon(lat: list, lon:list):
     """Format coords for KML file"""
-    l = ["            {},{},0".format(lo, la) for la, lo in zip(lat, lon)]
+    l = ["            {},{},1".format(lo, la) for la, lo in zip(lat, lon)]
     return "\n".join(l)
 
 def export_to_kml(x: list, y:list, x_gt: list, y_gt:list):
