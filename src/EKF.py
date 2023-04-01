@@ -5,6 +5,13 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import math
+from IPython.display import display
+
+# Imports for sympy
+import sympy as sp
+import sys
+import mpmath
+sys.modules['sympy.mpmath'] = mpmath
 
 # Imports for reading ground truth
 import sys
@@ -194,9 +201,107 @@ def calc_z_hat_wheel(vel_x, vel_y, yaw_dot, dt):
     z_wheel_vel = [v_left, v_right]
     return z_wheel_vel
 
+# wrap yaw measurements to [-pi, pi]. Accepts an angle measurement in radians and returns an angle measurement in radians
+def wraptopi(x):
+    if x > np.pi:
+        x = x - (np.floor(x / (2 * np.pi)) + 1) * 2 * np.pi
+    elif x < -np.pi:
+        x = x + (np.floor(x / (-2 * np.pi)) + 1) * 2 * np.pi
+    return x
+
+# PLEASE ENSURE THAT ALL STATES AND INPUTS TO THE SYSTEM ARE IN THE GLOBAL FRAME OF REFERENCE :-)
+# PLEASE MAKE USE OF WRAPTOPI() WHEN SUPPLYING ROBOT HEADING OR ROBOT ANGULAR VELOCITY
+
+# CURRENT STATE MODEL IS: X = [x, y, xdot, ydot, psi, psidot] 
+# CURRENT INPUT MODEL IS: U = [ax, ay, yaw_dot]
 
 if __name__ == "__main__":
-    #plot_FOG("dataset/2013-04-5_sen")
-    #plot_groundtruth("dataset/groundtruth_2013-04-05.csv", "dataset/cov_2013-04-05.csv")
-    #plot_IMU('ms25.csv')
-    #plot_wheel_vel('wheels.csv')
+
+    ######################### 0. INITIALIZE IMPORTANT VARIABLES #################################################################
+
+    # IMPORTANT TO-DO: NEED TO INITIALIZE Q AND R COVARIANCE MATRICES
+
+    Q = np.diag([]) # input noise covariance
+    R = np.diag([])  # measurement noise covariance
+
+    # TO-DO: NEED TO DEFINE GROUND TRUTH ARRAYS & ARRAY OF MEASUREMENTS
+    x_true = ...
+    y_true = ...
+    measurements = ...
+
+    # TO-DO: NEED TO DEFINE LENGTH OF STATES WE'LL BE ESTIMATING
+    N = len(measurements)
+    x_est = np.zeros([N, 6])  # estimated states, x, y, and theta
+    P_est = np.zeros([N, 6, 6])  # state covariance matrices
+
+    # TO-DO: NEED TO DEFINE INTIIAL STATE AND COVARIANCE MATRIX
+    x_est[0] = np.array([]) # initial state
+    P_est[0] = np.diag([]) # initial state covariance
+
+    ################################ 1. MAIN FILTER LOOP ##########################################################################
+
+    # TO-DO: NEED TO DEFINE ARRAY OF LINEARLY SPACED TIME INCREMENTS
+    #        THIS WILL DEFINE DELTA T...
+    
+    t = []
+
+    for k in range(1, len(t)):  # Start at 1 because we have initial prediction from ground truth.
+
+        delta_t = t[k] - t[k - 1]  # time step (difference between timestamps)
+
+        # TO-DO: I THINK WE HAVE COME TO THE CONSENSUS THAT WE'RE NOT USING ADDITIVE NOISE BUT IF WE ARE WE
+        #        NEED TO DEFINE IT HERE WITH APPROPRIATE DIMENSIONING. MULTIVARIATE NORMAL WITH A SCALED
+        #        IDENTITY COVARIANCE RETURNS AN Nx1 VECTOR OF 0-MEAN GAUSSIAN NOISE DEPENDING ON DIAG. OF R MATRIX
+            
+        w_v_k = np.random.multivariate_normal([0,0], R)
+
+        # 1-1. INITIAL UPDATE OF THE ROBOT STATE USING MEASUREMENTS (IMU, ETC.) 
+        x_check = x_est[k-1] + delta_t*...
+
+        # 1-2 Linearize Motion Model
+        # Compute the Jacobian of f w.r.t. the last state.
+
+        # TO-DO: DETERMINE MOTION MODEL EQUATIONS
+        x_k, y_k, x_dot_k, y_dot_k, psi_k = sp.symbols('x_k, y_k, x_dot_k, y_dot_k, psi_k', real=True)
+
+        f1 = x_k     + ...
+        f2 = y_k     + ...
+        f3 = x_dot_k + ...
+        f4 = y_dot_k + ...
+        f5 = psi_k   + ...
+
+        f = sp.Matrix([f1, f2, f3, f4, f5]).jacobian([x_k, y_k, x_dot_k, y_dot_k, psi_k])
+        F = np.array(f.subs([(x_k,      x_est[k-1,0]),
+                             (y_k,      x_est[k-1,1]),
+                             (x_dot_k,  x_est[k-1,2]),
+                             (y_dot_k,  x_est[k-1,3]),
+                             (psi_k,    x_est[k-1,4]),
+                            ])).astype(np.float64)
+        
+
+        # IGNORE FOR NOW.....
+        # Compute the Jacobian w.r.t. the noise variables.
+        # n_v, n_w = sp.symbols('n_v n_w', real=True)
+        
+        # l1 = x_k     + delta_t*(v[k]  + n_v)*sp.cos(theta_k)
+        # l2 = y_k     + delta_t*(v[k]  + n_v)*sp.sin(theta_k)
+        # l3 = theta_k + delta_t*(om[k] + n_w)
+
+        # l_small = sp.Matrix([l1, l2, l3]).jacobian([n_v, n_w])
+
+        # L = np.array(l_small.subs([(x_k,     x_est[k-1,0]),
+        #                         (y_k,     x_est[k-1,1]),
+        #                         (theta_k, x_est[k-1,2]),
+        #                         (n_v,     w_v_k[0]),
+        #                         (n_w,     w_v_k[1])])).astype(np.float64)
+        
+        # 2. Propagate uncertainty by updating the covariance
+        P_check = np.matmul(np.matmul(F,P_est[k-1]),np.transpose(F)) + np.matmul(np.matmul(L,Q),np.transpose(L))
+
+        # 3. Update state estimate using available landmark measurements r[k], b[k].
+        # for i in range(len(r[k])):
+        #     x_check, P_check = measurement_update(l[i], r[k,i], b[k,i], P_check, x_check)
+
+        # Set final state predictions for this kth timestep.
+        x_est[k] = x_check
+        P_est[k] = P_check
