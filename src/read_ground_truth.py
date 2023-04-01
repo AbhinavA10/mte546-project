@@ -28,6 +28,7 @@ def read_ground_truth(dataset_date):
 
     interp = scipy.interpolate.interp1d(gt[:, 0], gt[:, 1:], kind='nearest', axis=0, fill_value="extrapolate")
     pose_gt = interp(t_cov)
+    t_cov = t_cov-t_cov[0] # Make timestamps relative
 
     return pose_gt, t_cov
 
@@ -48,7 +49,7 @@ def plot_ground_truth(filepath):
     plt.ylabel('North [m]')
     
     plt.figure()
-    plt.plot((t-t[0])/1000000.0, yaw)
+    plt.plot(t/1000000.0, yaw)
     plt.title('Ground Truth Heading')
     plt.xlabel('Time [s]')
     plt.ylabel('Angle [rad]')
