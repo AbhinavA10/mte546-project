@@ -209,6 +209,19 @@ def wraptopi(x):
         x = x + (np.floor(x / (-2 * np.pi)) + 1) * 2 * np.pi
     return x
 
+def motion_jacobian(ax, ay, psidot, delta_t):
+    x_k, y_k, x_dot_k, y_dot_k, psi_k = sp.symbols('x_k, y_k, x_dot_k, y_dot_k, psi_k', real=True)
+
+    f1 = x_k     + x_dot_k*delta_t + 0.5*ax*delta_t^2
+    f2 = y_k     + y_dot_k*delta_t + 0.5*ay*delta_t^2
+    f3 = x_dot_k + ax*delta_t
+    f4 = y_dot_k + ay*delta_t
+    f5 = psi_k   + psidot*delta_t
+
+    f = sp.Matrix([f1, f2, f3, f4, f5]).jacobian([x_k, y_k, x_dot_k, y_dot_k, psi_k])
+
+    return f
+
 # PLEASE ENSURE THAT ALL STATES AND INPUTS TO THE SYSTEM ARE IN THE GLOBAL FRAME OF REFERENCE :-)
 # PLEASE MAKE USE OF WRAPTOPI() WHEN SUPPLYING ROBOT HEADING OR ROBOT ANGULAR VELOCITY
 
@@ -262,13 +275,14 @@ if __name__ == "__main__":
         # Compute the Jacobian of f w.r.t. the last state.
 
         # TO-DO: DETERMINE MOTION MODEL EQUATIONS
+        # Sam's note: where to get ax, ay, and psidot? Does it even matter if it's removed by the Jacobian?
         x_k, y_k, x_dot_k, y_dot_k, psi_k = sp.symbols('x_k, y_k, x_dot_k, y_dot_k, psi_k', real=True)
 
-        f1 = x_k     + ...
-        f2 = y_k     + ...
-        f3 = x_dot_k + ...
-        f4 = y_dot_k + ...
-        f5 = psi_k   + ...
+        f1 = x_k     + x_dot_k*delta_t + 0.5*ax*delta_t^2
+        f2 = y_k     + y_dot_k*delta_t + 0.5*ay*delta_t^2
+        f3 = x_dot_k + ax*delta_t
+        f4 = y_dot_k + ay*delta_t
+        f5 = psi_k   + psidot*delta_t
 
         f = sp.Matrix([f1, f2, f3, f4, f5]).jacobian([x_k, y_k, x_dot_k, y_dot_k, psi_k])
         F = np.array(f.subs([(x_k,      x_est[k-1,0]),
