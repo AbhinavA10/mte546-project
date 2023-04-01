@@ -39,16 +39,17 @@ def plot_gps(filepath):
     lat = gps[:, 3]
     lng = gps[:, 4]
 
-    # Convert GPS coordinates to linearized local frame
+    ### GPS -> local Frame ###
     lat0 = lat[0] # in radians
     lng0 = lng[0] # in radians
-
-    dLat = lat - lat0
-    dLng = lng - lng0
-
-    r = 6400000 # approx. radius of earth (m)
-    x = r * np.sin(dLat) # North
-    y = r * np.cos(lat0) * np.sin(dLng) # East
+    # Compute radii of Earth at origin of linearization
+    re = 6378135 # Earth Equatorial Radius [m]
+    rp = 6356750 # Earth Polar Radius [m]
+    r_ns = pow(re*rp,2)/pow(pow(re*np.cos(lat0),2)+pow(rp*np.sin(lat0),2),3/2)
+    r_ew = pow(re,2)/pow(pow(re*np.cos(lat0),2)+pow(rp*np.sin(lat0),2),1/2)
+    # Convert GPS coordinates to linearized local frame
+    x = np.sin(lat - lat0) * r_ns # North
+    y = np.sin(lng - lng0) * r_ew * np.cos(lat0) # East
 
     plt.figure()
     plt.scatter(y, x, s=1, linewidth=0)
@@ -60,6 +61,13 @@ def plot_gps(filepath):
 
     plt.show()
     #TODO: export to kml file
+
+    ### Local frame --> GPS
+    la = np.arcsin(x/r_ns) + lat0
+    lon = np.arcsin(y/(r_ew*np.cos(lat0))) + lng0
+    la = np.rad2deg(la) # Latitude, in degrees
+    lon = np.rad2deg(lon) # Longitude, in degrees
+
 
 if __name__ == "__main__":
     plot_gps("2012-01-15")
