@@ -229,7 +229,10 @@ def motion_jacobian(ax, ay, psidot, delta_t):
 # wheel velocities goes here (xdot, ydot)
 # heading??? might want to update it somehow?
 
-def measurement_update(lk, rk, bk, P_check, x_check):
+def measurement_jacobian():
+    return H
+
+def measurement_update(measurements, P_check, x_check):
     # 3.1 Compute measurement Jacobian using the landmarks and the current estimated state.
     H = measurement_jacobian(lk[0], lk[1], x_check)
 
@@ -243,10 +246,7 @@ def measurement_update(lk, rk, bk, P_check, x_check):
     
     # 3.3 Correct the predicted state.
     # NB : Make sure to use wraptopi() when computing the bearing estimate!
-    h = np.array([((lk[0] - x_check[0] - d[0]*np.cos(x_check[2]))**2
-                 + (lk[1] - x_check[1] - d[0]*np.sin(x_check[2]))**2)**0.5,
-                   (np.arctan2(lk[1] - x_check[1] - d[0]*np.sin(x_check[2]),
-                       lk[0] - x_check[0] - d[0]*np.cos(x_check[2])) - x_check[2])])
+    h = np.array([])
 
     y_check = h
 
@@ -330,8 +330,8 @@ if __name__ == "__main__":
 
         f1 = x_k      +  x_dot_k*delta_t + 0.5*ax*delta_t^2
         f2 = y_k      +  y_dot_k*delta_t + 0.5*ay*delta_t^2
-        f3 = x_dot_k  +  ax*delta_t
-        f4 = y_dot_k  +  ay*delta_t
+        f3 = x_dot_k  +  ax*delta_t # might want acceleration local in here idk
+        f4 = y_dot_k  +  ay*delta_t # TO-DO: maybe change
         f5 = psi_k    +  psidot*delta_t
 
         f = sp.Matrix([f1, f2, f3, f4, f5]).jacobian([x_k, y_k, x_dot_k, y_dot_k, psi_k])
