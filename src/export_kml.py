@@ -15,10 +15,9 @@ COORD_LIST = """
 
 from lxml import etree
 
-parser = etree.XMLParser(remove_blank_text=True)
 root = etree.parse('template.kml').getroot()
 
-tags = root.findall('.//coordinates', {None : 'http://www.opengis.net/kml/2.2'})
+tags = root.findall('.//coordinates', {None : 'http://www.opengis.net/kml/2.2'}) # recurisvely find all coordinate tags in namespace
 ground_truth_tag = tags[0]
 estimation_tag = tags[1]
 ground_truth_tag.text = COORD_LIST

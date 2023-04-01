@@ -1,6 +1,7 @@
 # Helper functions
 
 import numpy as np
+from lxml import etree
 
 def _compute_gps_conversion_params():
     # Compute radii of Earth at origin of linearization
@@ -37,6 +38,8 @@ def local_to_gps_coord(x: list, y:list):
     """
     r_ns, r_ew, LAT_0, LON_0 = _compute_gps_conversion_params()
     # Convert linearized local frame to GPS
+    x = x-72.5 # Tuned offset to adjust with Google Earth
+    y = y-107 # Tuned offset to adjust with Google Earth
     lat = np.arcsin(x/r_ns) + LAT_0
     lon = np.arcsin(y/(r_ew*np.cos(LAT_0))) + LON_0
     lat = np.rad2deg(lat) # Latitude, in degrees
@@ -45,8 +48,8 @@ def local_to_gps_coord(x: list, y:list):
 
 def _format_lat_lon(lat: list, lon:list):
     """Format coords for KML file"""
-    string = ""
-    return string
+    l = ["            {},{},0".format(lo, la) for la, lo in zip(lat, lon)]
+    return "\n".join(l)
 
 def export_to_kml(x: list, y:list, x_gt: list, y_gt:list):
     """Export list of local frame ground truth and estimated coords to KML file
@@ -55,8 +58,26 @@ def export_to_kml(x: list, y:list, x_gt: list, y_gt:list):
     - local frame ground truth coords (x_gt,y_gt) = (North, East) [meters]
     Returns: KML file export
     """
-    lat_gt,lon_gt = local_to_gps_coord(x_gt,y_gt)
-    formatted_coords = _format_lat_lon(lat_gt, lon_gt)
+    root = etree.parse('template.kml').getroot()
+    tags = root.findall('.//coordinates', {None : 'http://www.opengis.net/kml/2.2'}) # recurisvely find all coordinate tags in namespace
+    ground_truth_tag = tags[0]
+    estimation_tag = tags[1]
+    if x_gt is not None:
+        #TODO: skip datapoints in list to reduce file size. Ground truth has ~500,000 points
+        x_gt = x_gt[1::200] # sample every 200th point
+        y_gt = y_gt[1::200] # sample every 200th point
+        print(len(x_gt))
+        lat_gt,lon_gt = local_to_gps_coord(x_gt,y_gt)
+        formatted_coords_gt = _format_lat_lon(lat_gt, lon_gt)
+        ground_truth_tag.text = formatted_coords_gt 
+    if x is not None:
+        lat_est,lon_est = local_to_gps_coord(x,y)
+        formatted_coords_est = _format_lat_lon(lat_est, lon_est)
+        estimation_tag.text = formatted_coords_est
+    with open('output.kml', 'wb') as f:
+        f.write(etree.tostring(root, xml_declaration=True, encoding='UTF-8', pretty_print=True))
+
+def plot_state_comparison():
+    # Plot EKF states over time vs. Ground Truth
+    #TODO
     pass
-    #TODO: export to kml
-    #TODO: create state estimation comparison plots

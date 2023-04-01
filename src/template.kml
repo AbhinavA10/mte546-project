@@ -39,6 +39,7 @@
         <styleUrl>#redLineBluePoly</styleUrl>
         <LineString>
           <tessellate>1</tessellate>
+          <altitudeMode>relativeToGround</altitudeMode> 
           <coordinates>
           </coordinates>
         </LineString>
@@ -49,6 +50,7 @@
         <styleUrl>#blueLineGreenPoly</styleUrl>
         <LineString>
           <tessellate>1</tessellate>
+          <altitudeMode>relativeToGround</altitudeMode> 
           <coordinates>
           </coordinates>
         </LineString>
