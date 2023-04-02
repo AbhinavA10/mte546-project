@@ -272,15 +272,12 @@ def motion_jacobian(ax, ay, psidot, delta_t):
 # wheel velocities goes here (xdot, ydot)
 # heading??? might want to update it somehow?
 
-<<<<<<< Updated upstream
+
 def measurement_jacobian():
     return H
 
-def measurement_update(measurements, P_check, x_check):
-=======
 
-def measurement_update(lk, rk, bk, P_check, x_check):
->>>>>>> Stashed changes
+def measurement_update(measurements, P_check, x_check):
     # 3.1 Compute measurement Jacobian using the landmarks and the current estimated state.
     H = measurement_jacobian(lk[0], lk[1], x_check)
 
@@ -294,14 +291,7 @@ def measurement_update(lk, rk, bk, P_check, x_check):
 
     # 3.3 Correct the predicted state.
     # NB : Make sure to use wraptopi() when computing the bearing estimate!
-<<<<<<< Updated upstream
     h = np.array([])
-=======
-    h = np.array([((lk[0] - x_check[0] - d[0]*np.cos(x_check[2]))**2
-                 + (lk[1] - x_check[1] - d[0]*np.sin(x_check[2]))**2)**0.5,
-                  (np.arctan2(lk[1] - x_check[1] - d[0]*np.sin(x_check[2]),
-                              lk[0] - x_check[0] - d[0]*np.cos(x_check[2])) - x_check[2])])
->>>>>>> Stashed changes
 
     y_check = h
 
@@ -357,8 +347,8 @@ if __name__ == "__main__":
 
     t = []
 
-    # TO-DO: Specify file path (are we doing a specific file or everything at once?)
-    _, accel_x_vec, accel_y_vec, yaw_vec = read_IMU(filepath)
+    # TO-DO: specify filepath
+    _, accel_x, accel_y, yaw_rate = read_IMU(filepath)
 
     # Start at 1 because we have initial prediction from ground truth.
     for k in range(1, len(t)):
@@ -367,21 +357,19 @@ if __name__ == "__main__":
 
         # TO-DO: - READ IN IMU FILE
         #        - APPLY TRANSFORMATION/ROTATION MATRIX TO ACCELERATION
-        ax_orig = accel_x_vec[k]
-        ay_orig = accel_y_vec[k]
-        yaw_rate_orig = yaw_vec[k]
 
-        yaw = x_est[k-1][4]  # state estimation of psi
+        ax_orig = accel_x[k]
+        ay_orig = accel_y[k]
+        yaw = x_est[k][5]
 
+        acc_vec_imu = np.array([ax], [ay])
         rotation_matrix = np.array(
             [np.cos(yaw), -np.sin(yaw)], [np.sin(yaw), np.cos(yaw)])
+        acc_transf = np.matmul(rotation_matrix, acc_vec_imu)
 
-        acc_vec_imu = np.array([ax_orig], [ay_orig])
-        acc_tranfs = np.matmul(rotation_matrix, acc_vec_imu)  # 2x1 matrix
-
-        ax = acc_vec_imu[0]
-        ay = acc_vec_imu[1]
-        psidot = wraptopi(yaw_rate_orig)
+        ax = acc_transf[0]
+        ay = acc_transf[1]
+        psidot = wraptopi(yaw_rate[k])
 
         # 1-1. INITIAL UPDATE OF THE ROBOT STATE USING MEASUREMENTS (IMU, ETC.)
         x_check = x_est[k-1] + delta_t*np.array([x_dot_k + 0.5*ax*delta_t,
@@ -396,17 +384,10 @@ if __name__ == "__main__":
         x_k, y_k, x_dot_k, y_dot_k, psi_k = sp.symbols(
             'x_k, y_k, x_dot_k, y_dot_k, psi_k', real=True)
 
-<<<<<<< Updated upstream
-        f1 = x_k      +  x_dot_k*delta_t + 0.5*ax*delta_t^2
-        f2 = y_k      +  y_dot_k*delta_t + 0.5*ay*delta_t^2
-        f3 = x_dot_k  +  ax*delta_t # might want acceleration local in here idk
-        f4 = y_dot_k  +  ay*delta_t # TO-DO: maybe change
-        f5 = psi_k    +  psidot*delta_t
-=======
         f1 = x_k + x_dot_k*delta_t + 0.5*ax*delta_t ^ 2
         f2 = y_k + y_dot_k*delta_t + 0.5*ay*delta_t ^ 2
-        f3 = x_dot_k + ax*delta_t
-        f4 = y_dot_k + ay*delta_t
+        f3 = x_dot_k + ax*delta_t  # might want acceleration local in here idk
+        f4 = y_dot_k + ay*delta_t  # TO-DO: maybe change
         f5 = psi_k + psidot*delta_t
 
         f = sp.Matrix([f1, f2, f3, f4, f5]).jacobian(
@@ -417,7 +398,6 @@ if __name__ == "__main__":
                              (y_dot_k,  x_est[k-1, 3]),
                              (psi_k,    x_est[k-1, 4])
                              ])).astype(np.float64)
->>>>>>> Stashed changes
 
         # 2. Propagate uncertainty by updating the covariance
         P_check = np.matmul(np.matmul(F, P_est[k-1]), np.transpose(F)) + Q
