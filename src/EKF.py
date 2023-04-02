@@ -177,12 +177,12 @@ if __name__ == "__main__":
     theta_true = ground_truth[:, 3] # Heading
 
     N     = len(x_true)
-    x_est = np.zeros([N, 5]) 
-    P_est = np.zeros([N, 5, 5])  # state covariance matrices
+    x_est = np.zeros([N, 6]) 
+    P_est = np.zeros([N, 6, 6])  # state covariance matrices
 
     # x_est = x | y | xdot | ydot | theta | omega
-    x_est[0] = np.array([x_true[0], y_true[0], 0, 0, theta_true[0]])  # initial state
-    P_est[0] = np.diag([1, 1, 1, 1, 1])  # initial state covariance TO-DO: TUNE THIS TO TRAIN
+    x_est[0] = np.array([x_true[0], y_true[0], 0, 0, theta_true[0], 0])  # initial state
+    P_est[0] = np.diag([1, 1, 1, 1, 1, 1])  # initial state covariance TO-DO: TUNE THIS TO TRAIN
 
     ################################ 1. MAIN FILTER LOOP ##########################################################################
 
