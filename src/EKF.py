@@ -17,6 +17,12 @@ import read_ground_truth
 
 R_WHEEL = np.diag([1, 1])  # measurement noise covariance, Guess
 R_GPS = np.diag([0.1, 0.1])  # measurement noise covariance, Guess
+USE_RTK = True
+
+FILE_DATES = ["2012-01-08", "2012-01-15", "2012-01-22", "2012-02-02", "2012-02-04", "2012-02-05", "2012-02-12", 
+              "2012-02-18", "2012-02-19", "2012-03-17", "2012-03-25", "2012-03-31", "2012-04-29", "2012-05-11", 
+              "2012-05-26", "2012-06-15", "2012-08-04", "2012-08-20", "2012-09-28", "2012-10-28", "2012-11-04", 
+              "2012-11-16", "2012-11-17", "2012-12-01", "2013-01-10", "2013-02-23", "2013-04-05"]
 
 # wrap theta measurements to [-pi, pi].
 # Accepts an angle measurement in radians and returns an angle measurement in radians
@@ -173,12 +179,10 @@ if __name__ == "__main__":
 
     Q = np.diag([0.1, 0.1, 1, 1, 0.1, 1])  # input noise covariance, Guess
 
-    file_date = ["2013-04-05", "", ""]
-
-    ground_truth = read_ground_truth.read_ground_truth(file_date[0]) # 107 Hz
-    gps_data     = read_gps.read_gps(file_date[0]) # 2.5 or 6 Hz
-    imu_data     = read_imu.read_imu(file_date[0]) # 47 Hz
-    wheel_data   = read_wheels.read_wheels(file_date[0]) # 37 Hz
+    ground_truth = read_ground_truth.read_ground_truth(FILE_DATES[-1]) # 107 Hz
+    gps_data     = read_gps.read_gps(FILE_DATES[-1], USE_RTK) # 2.5 or 6 Hz
+    imu_data     = read_imu.read_imu(FILE_DATES[-1]) # 47 Hz
+    wheel_data   = read_wheels.read_wheels(FILE_DATES[-1]) # 37 Hz
     #Truncate data to first 20000 datapoints, for testing
     ground_truth = ground_truth[:50000,:]
     gps_data     = gps_data[:50000,:]
@@ -204,6 +208,7 @@ if __name__ == "__main__":
     
     x_true_arr = np.zeros([N-1, 1]) # Keep track of corresponding truths
     y_true_arr = np.zeros([N-1, 1])
+    theta_true_arr = np.zeros([N-1, 1])
 
     ################################ 1. MAIN FILTER LOOP ##########################################################################
 
@@ -277,18 +282,10 @@ if __name__ == "__main__":
         # Keep track of corresponding Ground Truths at the same timestep
         x_true_arr[k-1] = x_true[ground_truth_counter]
         y_true_arr[k-1] = y_true[ground_truth_counter]
+        theta_true_arr[k-1] = theta_true[ground_truth_counter]
 
     print('Done! Plotting now.')
     ###### PLOT DELIVERABLES #########################################################################################
-    # 1. PLOT FUSED LOCATION DATA
-    utils.export_to_kml(x_est[:,0], x_est[:,1], x_true_arr, y_true_arr)
-    utils.plot_state_comparison_2D(x_est[:,0], x_est[:,1], x_true_arr, y_true_arr) # x vs y of GT vs estimated
-    # utils.plot_states(x_est, P_est, x_true_arr, y_true_arr, theta_true_arr)
-
-    # 
-    
-    # x,y,theta over time vs Ground Truth and uncertainites
-    # error in x,y,theta over time vs Ground Truth
-    # euclidean distance error in x,y  over time vs Ground Truth
-    # all states over time
-    
+    utils.export_to_kml(x_est[:,0], x_est[:,1], x_true_arr, y_true_arr, "Estimated", "Ground Truth")
+    utils.plot_position_comparison_2D(x_est[:,0], x_est[:,1], x_true_arr, y_true_arr, "Estimated", "Ground Truth")
+    utils.plot_states(x_est, P_est, x_true_arr, y_true_arr, theta_true_arr)

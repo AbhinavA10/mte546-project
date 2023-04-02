@@ -1,42 +1,24 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2">
   <Document>
-    <Style id="blueLineGreenPoly">
+    <Style id="blueLine">
       <LineStyle>
-        <color>0000ffff</color>
+        <color>ffff0000</color>
         <width>4</width>
       </LineStyle>
-      <PolyStyle>
-        <color>7f00ff00</color>
-      </PolyStyle>
     </Style>
-    <Style id="redLineBluePoly">
+    <Style id="redLine">
       <LineStyle>
         <color>ff0000ff</color>
         <width>4</width>
       </LineStyle>
-      <PolyStyle>
-        <color>ffff0000</color>
-      </PolyStyle>
     </Style>
-    <Style id="transRedLine">
-      <LineStyle>
-        <color>7f0000ff</color>
-        <width>4</width>
-      </LineStyle>
-    </Style>
-    <Style id="thickBlackLine">
-      <LineStyle>
-        <color>87000000</color>
-        <width>10</width>
-      </LineStyle>
-    </Style>
+    <!-- https://mapsme.zendesk.com/hc/en-us/articles/210133609-How-to-change-the-color-of-kml-tracks- -->
     <Folder>
       <name>Paths</name>
       <Placemark>
-        <name>Ground Truth</name>
-        <description>Ground Truth Position</description>
-        <styleUrl>#redLineBluePoly</styleUrl>
+        <name>Estimation</name>
+        <styleUrl>#blueLine</styleUrl>
         <LineString>
           <tessellate>1</tessellate>
           <altitudeMode>relativeToGround</altitudeMode> 
@@ -45,9 +27,8 @@
         </LineString>
       </Placemark>
       <Placemark>
-        <name>State Estimate</name>
-        <description>Estimated Position</description>
-        <styleUrl>#thickBlackLine</styleUrl>
+        <name>Ground Truth</name>
+        <styleUrl>#redLine</styleUrl>
         <LineString>
           <tessellate>1</tessellate>
           <altitudeMode>relativeToGround</altitudeMode> 

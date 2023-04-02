@@ -39,8 +39,8 @@ def local_to_gps_coord(x: list, y:list):
     """
     r_ns, r_ew, LAT_0, LON_0 = _compute_gps_conversion_params()
     # Convert linearized local frame to GPS
-    x = x-72.5 # Tuned offset to adjust with Google Earth
-    y = y-107 # Tuned offset to adjust with Google Earth
+    x = x - 76.50582406697139 # Tuned offset to adjust with Google earth
+    y = y - 108.31373031919006 # Tuned offset to adjust with Google earth
     lat = np.arcsin(x/r_ns) + LAT_0
     lon = np.arcsin(y/(r_ew*np.cos(LAT_0))) + LON_0
     lat = np.rad2deg(lat) # Latitude, in degrees
@@ -52,7 +52,7 @@ def _format_lat_lon(lat: list, lon:list):
     l = ["            {},{},1".format(lo, la) for la, lo in zip(lat, lon)]
     return "\n".join(l)
 
-def export_to_kml(x: list, y:list, x_gt: list, y_gt:list):
+def export_to_kml(x1: list, y1:list, x2: list, y2:list, label1:str, label2:str, subsample=False):
     """Export list of local frame ground truth and estimated coords to KML file
     Parameters: 
     - local frame estimated coords (x,y) = (North, East) [meters]
@@ -60,36 +60,41 @@ def export_to_kml(x: list, y:list, x_gt: list, y_gt:list):
     Returns: KML file export
     """
     root = etree.parse('template.kml').getroot()
+    tags = root.findall('.//name', {None : 'http://www.opengis.net/kml/2.2'}) # recurisvely find all coordinate tags in namespace
+    name_tag_1 = tags[1] # 2nd name tag in kml
+    name_tag_2 = tags[2] # 3rd name tag in kml
+    name_tag_1.text = label1
+    name_tag_2.text = label2
     tags = root.findall('.//coordinates', {None : 'http://www.opengis.net/kml/2.2'}) # recurisvely find all coordinate tags in namespace
-    ground_truth_tag = tags[0]
-    estimation_tag = tags[1]
-    if x_gt is not None:
-        # Ground truth has ~500,000 points
-        x_gt = x_gt[1::200] # sample every 200th point
-        y_gt = y_gt[1::200] # sample every 200th point
-        lat_gt,lon_gt = local_to_gps_coord(x_gt,y_gt)
-        formatted_coords_gt = _format_lat_lon(lat_gt, lon_gt)
-        ground_truth_tag.text = formatted_coords_gt 
-    if x is not None:
-        x = x[1::200] # sample every 200th point
-        y = y[1::200] # sample every 200th point
-        lat_est,lon_est = local_to_gps_coord(x,y)
-        formatted_coords_est = _format_lat_lon(lat_est, lon_est)
-        estimation_tag.text = formatted_coords_est
+    coord_tag_1 = tags[0]
+    coord_tag_2 = tags[1]
+    if x1 is not None:
+        # if subsample:
+            # x1 = x1[1::200] # sample every 200th point
+            # y1 = y1[1::200] # sample every 200th point
+        lat1,lon1 = local_to_gps_coord(x1,y1)
+        formatted_coords1 = _format_lat_lon(lat1, lon1)
+        coord_tag_1.text = formatted_coords1
+    if x2 is not None:
+        if subsample:
+            # Ground truth has ~500,000 points
+            x2 = x2[1::200] # sample every 200th point
+            y2 = y2[1::200] # sample every 200th point
+        lat2,lon2 = local_to_gps_coord(x2,y2)
+        formatted_coords2 = _format_lat_lon(lat2, lon2)
+        coord_tag_2.text = formatted_coords2 
     with open('output.kml', 'wb') as f:
         f.write(etree.tostring(root, xml_declaration=True, encoding='UTF-8', pretty_print=True))
 
-def plot_state_comparison_2D(x: list, y:list, x_gt: list, y_gt:list):
-    """Plot local frame ground truth and estimated coords on x-y plot
+def plot_position_comparison_2D(x1: list, y1:list, x2: list, y2:list, label1:str, label2:str):
+    """Plot local frame ground truth and estimated coords on x-y line plot
     Parameters: 
     - local frame estimated coords (x,y) = (North, East) [meters]
     - local frame ground truth coords (x_gt,y_gt) = (North, East) [meters]
     """
     plt.figure()
-    # plt.scatter(y, x, s=1, c='b', linewidth=0, label='Estimated') # plot flipped since North,East
-    # plt.scatter(y_gt, x_gt, c='r', s=1, linewidth=0, label='Ground Truth')
-    plt.plot(y, x, c='b', linewidth=1, label='Estimated') # plot flipped since North,East
-    plt.plot(y_gt, x_gt, c='r', linewidth=1, label='Ground Truth')
+    plt.plot(y1, x1, c='b', linewidth=1, label=label1) # plot flipped since North,East
+    plt.plot(y2, x2, c='r', linewidth=1, label=label2)
     plt.axis('equal')
     plt.legend()
     plt.title('Comparison')
@@ -97,22 +102,30 @@ def plot_state_comparison_2D(x: list, y:list, x_gt: list, y_gt:list):
     plt.ylabel('North [m]')
     plt.show()
 
+
+def plot_position_comparison_2D_scatter(x1: list, y1:list, x2: list, y2:list, label1:str, label2:str):
+    """Plot local frame ground truth and estimated coords on x-y sacatter plot
+    Parameters: 
+    - local frame estimated coords (x,y) = (North, East) [meters]
+    - local frame ground truth coords (x_gt,y_gt) = (North, East) [meters]
+    """
+    plt.figure()
+    plt.scatter(y1, x1, s=1, c='b', linewidth=0, label=label1) # plot flipped since North,East
+    plt.scatter(y2, x2, c='r', s=1, linewidth=0, label=label2)
+    plt.axis('equal')
+    plt.legend()
+    plt.title('Comparison')
+    plt.xlabel('East [m]')
+    plt.ylabel('North [m]')
+    plt.show(),
 
 def plot_states(x_est:np.ndarray, P_est:np.ndarray, x_true_arr:np.ndarray, y_true_arr:np.ndarray, theta_true_arr:np.ndarray):
-    """Plot local frame ground truth and estimated coords on x-y plot
-    Parameters: 
-    - local frame estimated coords (x,y) = (North, East) [meters]
-    - local frame ground truth coords (x_gt,y_gt) = (North, East) [meters]
-    """
+    #TODO:
+    # x,y,theta over time vs Ground Truth and uncertainites
+    # error in x,y,theta over time vs Ground Truth
+    # euclidean distance error in x,y  over time vs Ground Truth
+    # all states over time
+    
     N = len(x_true_arr)
     # Generate list of relative timesteps, from 0 to last timestep in ground_truth
-    plt.figure()
-
-    plt.plot(y, x, c='b', linewidth=1, label='Estimated') # plot flipped since North,East
-    plt.plot(y_gt, x_gt, c='r', linewidth=1, label='Ground Truth')
-    plt.axis('equal')
-    plt.legend()
-    plt.title('Comparison')
-    plt.xlabel('East [m]')
-    plt.ylabel('North [m]')
-    plt.show()
+    

@@ -4,16 +4,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 import utils
 
-USE_RTK = True # change as needed
-
 # Accept a filepath to the CSV of interest and return Numpy array with data
-def read_gps(dataset_date):
+def read_gps(dataset_date, use_rtk=False):
     """Read GPS Data
     Parameters: dataset date
     Returns: np.ndarray([timestamp, x, y])
     """
     filepath = f"dataset/{dataset_date}/gps.csv"
-    if USE_RTK:
+    if use_rtk:
         filepath = f"dataset/{dataset_date}/gps_rtk.csv"
     
     gps = np.loadtxt(filepath, delimiter = ",")
@@ -25,28 +23,28 @@ def read_gps(dataset_date):
     lng = gps[:, 4]
     # t = t-t[0] # make timestamps relative
     t = t/1000000
-    if USE_RTK:
+    if use_rtk:
         utils.calculate_hz("GPS RTK", t) # 2.5 Hz
     else:
         utils.calculate_hz("GPS", t) # 6 Hz
     
     x,y = utils.gps_to_local_coord(lat, lng) #North,East
 
-    x = x + 76.50582406697139 # Tuned offset to adjust with ground truth initial position
-    y = y + 108.31373031919006 # Tuned offset to adjust with ground truth initial position
+    x = x + 76.50582406697139 # Offset to adjust with ground truth initial position
+    y = y + 108.31373031919006 # Offset to adjust with ground truth initial position
 
     gps_data = np.array([])
     gps_data = np.vstack((t, x, y)).T
 
     # Filter data to campus map area
-    #gps_data = np.delete(gps_data, np.where((gps_data[:,1] < -450 ) | (gps_data[:,1] > 100 ))[0], axis=0) # x
-    #gps_data = np.delete(gps_data, np.where((gps_data[:,2] < -900 ) | (gps_data[:,2] > 50 ))[0], axis=0) # y
+    gps_data = np.delete(gps_data, np.where((gps_data[:,1] < -350 ) | (gps_data[:,1] > 120 ))[0], axis=0) # x
+    gps_data = np.delete(gps_data, np.where((gps_data[:,2] < -750 ) | (gps_data[:,2] > 150 ))[0], axis=0) # y
 
     # timestamp | x | y
     return gps_data
 
 # Accepta a filepath to the CSV of interest and plot the GPS data
-def plot_gps(filepath):
+def plot_gps(filepath, use_rtk=False):
     gps = read_gps(filepath)
     t = gps[:,0]
     x = gps[:,1]
@@ -58,11 +56,11 @@ def plot_gps(filepath):
     plt.xlabel('East [m]')
     plt.ylabel('North [m]')
     plt.axis('equal')
-    if USE_RTK:
+    if use_rtk:
         plt.title('GPS RTK Position')
     else:
         plt.title('Consumer GPS Position')
     plt.show()    
 
 if __name__ == "__main__":
-    plot_gps("2013-04-05")
+    plot_gps("2013-04-05", use_rtk=False)
