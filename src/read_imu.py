@@ -16,7 +16,7 @@ def read_imu(dataset_date):
     utils.calculate_hz("IMU", t) # 47 Hz
 
     # have the following format:
-    # timestamp | ax_robot | ay_robot | psi_dot
+    # timestamp | ax_robot | ay_robot | omega
     imu_data = np.array([])
     imu_data = np.vstack((t, accel_x_OG, accel_y_OG, rot_h_OG)).T
     return imu_data

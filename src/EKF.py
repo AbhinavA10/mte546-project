@@ -26,54 +26,58 @@ def wraptopi(x):
         x = x + (np.floor(x / (-2 * np.pi)) + 1) * 2 * np.pi
     return x
 
-def motion_jacobian(ax_imu, ay_imu, omega, dt, state_vector): # IMU inputs in robot frame
-    # state_vector = [x_k, y_k, x_dot_k, y_dot_k, theta_k]
-    x_k, y_k, x_dot_k, y_dot_k, theta_k = sp.symbols(
-        'x_k, y_k, x_dot_k, y_dot_k, theta_k', real=True)
+def motion_jacobian(ax_imu, ay_imu, omega_imu, dt, state_vector): # IMU inputs in robot frame
+    """Compute Jacobian for Motion Model"""
+    x_k, y_k, x_dot_k, y_dot_k, theta_k, omega_k = sp.symbols(
+        'x_k, y_k, x_dot_k, y_dot_k, theta_k, omega_k', real=True)
     
     ax_global = ax_imu*sp.cos(-theta_k) - ay_imu*sp.sin(-theta_k)
     ay_global = ax_imu*sp.sin(-theta_k) - ay_imu*sp.cos(-theta_k)
+    
     f1 = x_k + x_dot_k*dt + 0.5*ax_global*dt**2
     f2 = y_k + y_dot_k*dt + 0.5*ay_global*dt**2
     f3 = x_dot_k + ax_global*dt
     f4 = y_dot_k + ay_global*dt
-    f5 = theta_k + omega*dt
+    f5 = theta_k + omega_imu*dt
+    f6 = omega_imu
 
-    F = sp.Matrix([f1, f2, f3, f4, f5]).jacobian([x_k, y_k, x_dot_k, y_dot_k, theta_k])
+    F = sp.Matrix([f1, f2, f3, f4, f5, f6]).jacobian([x_k, y_k, x_dot_k, y_dot_k, theta_k, omega_k])
 
     F = np.array(F.subs([(x_k,      state_vector[0]),
                          (y_k,      state_vector[1]),
                          (x_dot_k,  state_vector[2]),
                          (y_dot_k,  state_vector[3]),
                          (theta_k,    state_vector[4])
+                         (omega_k,    state_vector[5])
                          ])).astype(np.float64)
     return F
 
-# TODO
-def measurement_jacobian():
-    return 0
-
-# update measurement models
+# Measurement models
+#TODO: take jacobians, since wheel velocity measurement is nonlinear
 def z_hat_wheel(state_vector, dt):
-    vel_x, vel_y, omega = state_vector #TODO
-    v_c = math.sqrt(vel_x**2 + vel_y**2)
-    v_right = v_c + (dt*omega)/2
-    v_left = v_c - (dt*omega)/2
-
+    """Calculate Z_hat for Wheel Velocity Measurements"""
+    ROBOT_WIDTH_WHEEL_BASE = 0.562356 # T [m], From SolidWorks Model
+    vel_x, vel_y, omega = state_vector[2], state_vector[3], state_vector[5]
+    v_c     = math.sqrt(vel_x**2 + vel_y**2)
+    v_right = v_c + (ROBOT_WIDTH_WHEEL_BASE*omega)/2
+    v_left  = v_c - (ROBOT_WIDTH_WHEEL_BASE*omega)/2
     z_wheel_vel = [v_left, v_right]
     return z_wheel_vel
 
-def z_hat_wheel(state_vector, dt):
-    v_c = math.sqrt(vel_x**2 + vel_y**2)
-    v_right = v_c + (dt*omega)/2
-    v_left = v_c - (dt*omega)/2
+def z_hat_gps(state_vector):
+    """Calculate Z_hat for GPS measurements"""
+    x, y = state_vector[0], state_vector[1]
+    z_gps = [x, y]
+    return z_gps
 
-    z_wheel_vel = [v_left, v_right]
-    return z_wheel_vel
+def measurement_jacobian_wheel(state_vector, dt):
+    pass
 
+def measurement_jacobian_gps(state_vector, dt):
+    pass
 
 # TODO
-def measurement_update(measurements, P_check, x_check):
+def measurement_update_wheel(measurements, P_check, x_check, R):
     # 3.1 Compute measurement Jacobian using the landmarks and the current estimated state.
     H = measurement_jacobian(lk[0], lk[1], x_check)
 
@@ -104,10 +108,7 @@ def measurement_update(measurements, P_check, x_check):
 
     return x_check, P_check
 
-# PLEASE ENSURE THAT ALL STATES AND INPUTS TO THE SYSTEM ARE IN THE GLOBAL FRAME OF REFERENCE :-)
-# PLEASE MAKE USE OF WRAPTOPI() WHEN SUPPLYING ROBOT HEADING OR ROBOT ANGULAR VELOCITY
-
-# CURRENT STATE MODEL IS: X = [x, y, x_dot, y_dot, theta]
+# CURRENT STATE MODEL IS: X = [x, y, x_dot, y_dot, theta, omega]
 # CURRENT INPUT MODEL IS: U = [ax, ay, omega]
 
 if __name__ == "__main__":
@@ -133,7 +134,7 @@ if __name__ == "__main__":
     x_est = np.zeros([N, 5]) 
     P_est = np.zeros([N, 5, 5])  # state covariance matrices
 
-    # x_est = x | y | xdot | ydot | theta
+    # x_est = x | y | xdot | ydot | theta | omega
     x_est[0] = np.array([x_true[0], y_true[0], 0, 0, theta_true[0]])  # initial state
     P_est[0] = np.diag([1, 1, 1, 1, 1])  # initial state covariance TO-DO: TUNE THIS TO TRAIN
 
@@ -145,54 +146,62 @@ if __name__ == "__main__":
 
     a_x           =   imu_data[:,1]
     a_y           =   imu_data[:,2]
-    omega       =   imu_data[:,3]
+    omega         =   imu_data[:,3]
     gps_x         =   gps_data[:,1]
     gps_y         =   gps_data[:,2]
     v_robot       = wheel_data[:,1]
     v_left_wheel  = wheel_data[:,2]
     v_right_wheel = wheel_data[:,3]
 
+    gps_times   = gps_data[:,0]
+    wheel_times = wheel_data[:,0]
+    imu_times   = imu_data[:,0]
+    gps_counter   = 0
+    wheel_counter = 0
+    imu_counter   = 0
+
     # Start at 1 because we have initial prediction from ground truth.
     for k in range(1, len(t)):
 
-        acc_vec_imu = np.array([a_x[k-1], a_y[k-1]])
+        if t[k] >= imu_times[imu_counter]:
+            acc_vec_imu = np.array([a_x[k-1], a_y[k-1]])
 
-        rotation_matrix = np.array([np.cos(x_est[k-1,4]), -np.sin(x_est[k-1,4])],
-                                   [np.sin(x_est[k-1,4]),  np.cos(x_est[k-1,4])])
+            rotation_matrix = np.array([np.cos(x_est[k-1,4]), -np.sin(x_est[k-1,4])],
+                                    [np.sin(x_est[k-1,4]),  np.cos(x_est[k-1,4])])
 
-        a_global = np.matmul(rotation_matrix, acc_vec_imu)
+            a_global = np.matmul(rotation_matrix, acc_vec_imu)
 
-        ax = a_global[0]
-        ay = a_global[1]
+            ax = a_global[0]
+            ay = a_global[1]
 
-        omega = wraptopi(omega[k])
+            omega = wraptopi(omega[k])
 
-        # 1-1. INITIAL UPDATE OF THE ROBOT STATE USING MEASUREMENTS (IMU, ETC.)
-        vel_vec_wheels = np.array([v_robot[k-1], 0])
-        
-        vel_global = np.matmul(rotation_matrix, vel_vec_wheels)
+            # 1-1. INITIAL UPDATE OF THE ROBOT STATE USING MOTION MODEL AND INPUTS (IMU)
+            ax_global = ax*sp.cos(-x_est[k-1, 5]) - ay*sp.sin(-x_est[k-1, 5])
+            ay_global = ax*sp.sin(-x_est[k-1, 5]) - ay*sp.cos(-x_est[k-1, 5])
 
-        x_dot_k = vel_global[0]
-        y_dot_k = vel_global[1]
+            x_check = x_est[k-1] + dt*np.array([x_est[k-1,2] + 0.5*ax*dt,
+                                                x_est[k-1,3] + 0.5*ay*dt,
+                                                ax,
+                                                ay,
+                                                omega,
+                                                0])
+            x_check[6] = omega
 
-        x_check = x_est[k-1] + dt*np.array([x_dot_k + 0.5*ax*dt,
-                                            y_dot_k + 0.5*ay*dt,
-                                            ax,
-                                            ay,
-                                            omega])
+            # 1-2 Linearize Motion Model
+            # Compute the Jacobian of f w.r.t. the last state.
+            F = motion_jacobian(acc_vec_imu[0], acc_vec_imu[1], omega, dt, x_est[k-1])
 
-        # 1-2 Linearize Motion Model
-        # Compute the Jacobian of f w.r.t. the last state. TODO
-        F = motion_jacobian()
+            # 2. Propagate uncertainty by updating the covariance
+            P_check = np.matmul(np.matmul(F, P_est[k-1]), np.transpose(F)) + Q
 
-        # 2. Propagate uncertainty by updating the covariance
-        P_check = np.matmul(np.matmul(F, P_est[k-1]), np.transpose(F)) + Q
+        if t[k] >= gps_times[gps_counter]:
+            x_check, P_check = gps_measurement_update()
+            gps_counter += 1
 
-        # TODO: - GRAB THE DATA BASED ON TIMESTAMPS AND SAMPLING RATES....
-        #        - THEN, UPDATE MEASUREMENTS ACCORDING TO WHICH PIECE OF DATA YOU GET
-        for i in range(len(r[k])):
-            x_check, P_check = measurement_update(
-                l[i], r[k, i], b[k, i], P_check, x_check)
+        if t[k] >= wheel_times[wheel_counter]:
+            x_check, P_check = wheel_measurement_update()
+            wheel_counter += 1
 
         # Set final state predictions for this kth timestep.
         x_est[k] = x_check
@@ -203,3 +212,6 @@ if __name__ == "__main__":
 # 1. PLOT FUSED LOCATION DATA
 # 2. PLOT MSE FROM GROUND TRUTH (EUCLIDEAN DISTANCE)
 # 3. PLOT GROUND TRUTH FOR COMPARISON
+
+
+
