@@ -168,6 +168,10 @@ if __name__ == "__main__":
     gps_data     = read_gps.read_gps(file_date[0]) # 2.5 or 6 Hz
     imu_data     = read_imu.read_imu(file_date[0]) # 47 Hz
     wheel_data   = read_wheels.read_wheels(file_date[0]) # 37 Hz
+    #TODO: truncate above datas to first 1000 datapoints, for testing
+    #TODO: speed up code
+    #TODO: Correct relative timestamping of each data type -- need to make relative to ground truth timestamps instead
+        # Alternatively, don't use relative timestamps but use the original Unix Timestamp for timesyncing
 
     x_true   = ground_truth[:, 1] # North
     y_true   = ground_truth[:, 2] # East
@@ -186,7 +190,6 @@ if __name__ == "__main__":
     # Generate list of timesteps, from 0 to last timestep in ground_truth
     dt = 1/50
     t = np.arange(0, ground_truth[-1,0], dt)
-
     a_x           =   imu_data[:,1]
     a_y           =   imu_data[:,2]
     omega         =   imu_data[:,3]
@@ -243,14 +246,15 @@ if __name__ == "__main__":
         # Set final state predictions for this kth timestep.
         x_est[k] = x_predicted
         P_est[k] = P_predicted
-    print('Done!')
-    # utils.export_to_kml(x_est[:,0], x_est[:,1], ground_truth[:,1], ground_truth[:,2])
-    #utils.plot_state_comparison() #TODO: how to sync with ground truth?
-    
-    # TODO: PLOT DELIVERABLES #########################################################################################
+    print('Done! Plotting now.')
+    ###### PLOT DELIVERABLES #########################################################################################
     # 1. PLOT FUSED LOCATION DATA
-    # 2. PLOT MSE FROM GROUND TRUTH (EUCLIDEAN DISTANCE)
-    # 3. PLOT GROUND TRUTH FOR COMPARISON
-
+    utils.export_to_kml(x_est[:,0], x_est[:,1], ground_truth[:,1], ground_truth[:,2])
+    utils.plot_state_comparison(x_est[:,0], x_est[:,1], ground_truth[:,1], ground_truth[:,2])
+    # TODO 2. PLOT MSE FROM GROUND TRUTH (EUCLIDEAN DISTANCE)
+    # TODO 3. PLOT GROUND TRUTH FOR COMPARISON
+    #TODO: how to make time-synced plots with ground truth?
+    
+    
 
 

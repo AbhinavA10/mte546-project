@@ -2,6 +2,7 @@
 
 import numpy as np
 from lxml import etree
+import matplotlib.pyplot as plt
 
 def _compute_gps_conversion_params():
     # Compute radii of Earth at origin of linearization
@@ -70,13 +71,26 @@ def export_to_kml(x: list, y:list, x_gt: list, y_gt:list):
         formatted_coords_gt = _format_lat_lon(lat_gt, lon_gt)
         ground_truth_tag.text = formatted_coords_gt 
     if x is not None:
+        x = x[1::200] # sample every 200th point
+        y = y[1::200] # sample every 200th point
         lat_est,lon_est = local_to_gps_coord(x,y)
         formatted_coords_est = _format_lat_lon(lat_est, lon_est)
         estimation_tag.text = formatted_coords_est
     with open('output.kml', 'wb') as f:
         f.write(etree.tostring(root, xml_declaration=True, encoding='UTF-8', pretty_print=True))
 
-def plot_state_comparison():
-    # Plot EKF states over time vs. Ground Truth
-    #TODO
-    pass
+def plot_state_comparison(x: list, y:list, x_gt: list, y_gt:list):
+    """Plot local frame ground truth and estimated coords
+    Parameters: 
+    - local frame estimated coords (x,y) = (North, East) [meters]
+    - local frame ground truth coords (x_gt,y_gt) = (North, East) [meters]
+    """
+    plt.figure()
+    plt.scatter(y, x, s=1, c='b', linewidth=0, label='Estimated') # plot flipped since North,East
+    plt.scatter(y_gt, x_gt, c='r', s=1, linewidth=0, label='Ground Truth')
+    plt.axis('equal')
+    plt.legend()
+    plt.title('Comparison')
+    plt.xlabel('East [m]')
+    plt.ylabel('North [m]')
+    plt.show()

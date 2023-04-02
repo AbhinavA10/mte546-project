@@ -50,6 +50,8 @@ def plot_gps(filepath):
 
     plt.figure()
     plt.scatter(y, x, s=1, linewidth=0) # plot flipped since North,East
+    plt.xlabel('East [m]')
+    plt.ylabel('North [m]')
     plt.axis('equal')
     if USE_RTK:
         plt.title('GPS RTK Position')
