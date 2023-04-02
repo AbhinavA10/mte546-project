@@ -13,27 +13,40 @@ import utils
 
 # Accept a filepath to the CSV of interest and return Numpy array with data
 def read_ground_truth(dataset_date):
+    """Read Ground Truth Data
+    Parameters: dataset date
+    Returns: np.ndarray([timestamp, x, y, yaw])
+    """
     filepath_cov = f"dataset/{dataset_date}/odometry_cov_100hz.csv"
     filepath_gt = f"dataset/{dataset_date}/groundtruth_{dataset_date}.csv"
     
     gt = np.loadtxt(filepath_gt, delimiter = ",")
     cov = np.loadtxt(filepath_cov, delimiter = ",")
     
-    t_cov = cov[:, 0]
+    t = cov[:, 0]
 
     interp = scipy.interpolate.interp1d(gt[:, 0], gt[:, 1:], kind='nearest', axis=0, fill_value="extrapolate")
-    pose_gt = interp(t_cov)
-    t_cov = t_cov-t_cov[0] # Make timestamps relative
-
-    return t_cov, pose_gt
-
-# Accepta a filepath to the CSV of interest and plot the FOG data
-def plot_ground_truth(filepath):
-    t, pose_gt = read_ground_truth(filepath)
-
+    pose_gt = interp(t)
+    t = t-t[0] # Make timestamps relative
+    t = t/1000000
     x = pose_gt[:, 0] # North
     y = pose_gt[:, 1] # East
     yaw = pose_gt[:, 5]
+    utils.calculate_hz("Ground Truth", t) # 107 Hz
+    
+    ground_truth = np.array([])
+    ground_truth = np.vstack((t, x, y, yaw)).T 
+
+    # timestamp | x | y | yaw
+    return ground_truth
+
+# Accept a filepath to the CSV of interest and plot the Ground Truth data
+def plot_ground_truth(filepath):
+    ground_truth = read_ground_truth(filepath)
+    t = ground_truth[:,0]
+    x = ground_truth[:, 1] # North
+    y = ground_truth[:, 2] # East
+    yaw = ground_truth[:, 3]
 
     utils.export_to_kml(None,None,x,y)
 
@@ -44,12 +57,12 @@ def plot_ground_truth(filepath):
     plt.xlabel('East [m]')
     plt.ylabel('North [m]')
     
-    # plt.figure()
-    # plt.plot(t/1000000.0, yaw)
-    # plt.title('Ground Truth Heading')
-    # plt.xlabel('Time [s]')
-    # plt.ylabel('Angle [rad]')
+    plt.figure()
+    plt.plot(t, yaw)
+    plt.title('Ground Truth Heading')
+    plt.xlabel('Time [s]')
+    plt.ylabel('Angle [rad]')
     plt.show()
 
 if __name__ == "__main__":
-    plot_ground_truth("2012-08-04")
+    plot_ground_truth("2013-04-05")

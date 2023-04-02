@@ -16,7 +16,7 @@ def _compute_gps_conversion_params():
 def calculate_hz(sensor_name:str, timestamps: list):
     """Calculate Hz of Sensor Data"""
     length = timestamps[-1] - timestamps[0]
-    average_timestep = length/len(timestamps)/1000000
+    average_timestep = length/len(timestamps)
     hz = 1/average_timestep
     print(f"{sensor_name} data, Hz: {hz}")
 
@@ -66,7 +66,6 @@ def export_to_kml(x: list, y:list, x_gt: list, y_gt:list):
         # Ground truth has ~500,000 points
         x_gt = x_gt[1::200] # sample every 200th point
         y_gt = y_gt[1::200] # sample every 200th point
-        print(len(x_gt))
         lat_gt,lon_gt = local_to_gps_coord(x_gt,y_gt)
         formatted_coords_gt = _format_lat_lon(lat_gt, lon_gt)
         ground_truth_tag.text = formatted_coords_gt 
