@@ -16,7 +16,7 @@ def read_wheels(dataset_date):
     t = t-t[0]
     t = t/1000000
 
-    utils.calculate_hz("Wheel Odometry", t) # 5.85 Hz
+    utils.calculate_hz("Wheel Odometry", t) # 37 Hz
 
     # have the following format:
     # timestamp | robot velocity | left wheel velocity | right wheel velocity
@@ -24,3 +24,10 @@ def read_wheels(dataset_date):
     wheel_data = np.vstack((t, robot_vel, left_wheel_vel, right_wheel_vel)).T
     return wheel_data
 
+# Accept a filepath to the CSV of interest and plot the Wheel data
+def plot_wheels(filepath):
+    wheels = read_wheels(filepath)
+    pass
+
+if __name__ == "__main__":
+    plot_wheels("2013-04-05")

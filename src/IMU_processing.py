@@ -1,15 +1,6 @@
-# !/usr/bin/python
-#
 # Script to read and process Microstrain IMU data
-#
-# To call:
-#       python IMU_processing.py
-#   
-#
 
-import sys
 import matplotlib.pyplot as plt
-import matplotlib.mlab as mlab
 import numpy as np
 import pandas as pd
 from scipy.stats import norm
