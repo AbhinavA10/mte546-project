@@ -186,9 +186,10 @@ if __name__ == "__main__":
     wheel_data   = wheel_data[:50000,:]
     # Using the original Unix Timestamp for timesyncing
 
-    x_true   = ground_truth[:, 1] # North
-    y_true   = ground_truth[:, 2] # East
+    x_true     = ground_truth[:, 1] # North
+    y_true     = ground_truth[:, 2] # East
     theta_true = ground_truth[:, 3] # Heading
+    true_times = ground_truth[:, 0]
 
     # Generate list of timesteps, from 0 to last timestep in ground_truth
     dt = 1/1 # 1/Hz = seconds
@@ -200,6 +201,9 @@ if __name__ == "__main__":
     # x_est = x | y | xdot | ydot | theta | omega
     x_est[0] = np.array([x_true[0], y_true[0], 0, 0, theta_true[0], 0])  # initial state
     P_est[0] = np.diag([1, 1, 1, 1, 1, 1])  # initial state covariance TO-DO: TUNE THIS TO TRAIN
+    
+    x_true_arr = np.zeros([N-1, 1]) # Keep track of corresponding truths
+    y_true_arr = np.zeros([N-1, 1])
 
     ################################ 1. MAIN FILTER LOOP ##########################################################################
 
@@ -209,7 +213,6 @@ if __name__ == "__main__":
 
     gps_x         =   gps_data[:,1]
     gps_y         =   gps_data[:,2]
-    #v_robot      = wheel_data[:,1]
     v_left_wheel  = wheel_data[:,2]
     v_right_wheel = wheel_data[:,3]
 
@@ -219,6 +222,8 @@ if __name__ == "__main__":
     gps_counter   = 0
     wheel_counter = 0
     imu_counter   = 0
+    ground_truth_counter = 0
+
     prev_gps_counter   = -1
     prev_wheel_counter = -1
     prev_imu_counter   = -1
@@ -246,9 +251,10 @@ if __name__ == "__main__":
         P_predicted = np.matmul(np.matmul(F, P_est[k-1]), np.transpose(F)) + Q
 
         imu_counter = find_nearest_index(imu_times, t[k]) # Grab closest IMU data
-        gps_counter = find_nearest_index(gps_times, t[k]) # Grab closest IMU data
-        wheel_counter = find_nearest_index(wheel_times, t[k]) # Grab closest IMU data
-        
+        gps_counter = find_nearest_index(gps_times, t[k]) # Grab closest GPS data
+        wheel_counter = find_nearest_index(wheel_times, t[k]) # Grab closest Wheel Velocity data
+        ground_truth_counter = find_nearest_index(true_times, t[k]) # Grab closest Ground Truth data
+
         #print("Times", t[k], wheel_times[wheel_counter])
 
         # CORRECTION - Correct with measurement models if available
@@ -263,17 +269,26 @@ if __name__ == "__main__":
             x_predicted, P_predicted = measurement_update_wheel(v_left_wheel[wheel_counter], v_right_wheel[wheel_counter], P_predicted, x_predicted)
             prev_wheel_counter = wheel_counter
         
-        #TODO: Ground Truth counter to keep track of corresponding truths at the same timestep
-        
+
         # Set final state predictions for this kth timestep.
         x_est[k] = x_predicted
         P_est[k] = P_predicted
+        
+        # Keep track of corresponding Ground Truths at the same timestep
+        x_true_arr[k-1] = x_true[ground_truth_counter]
+        y_true_arr[k-1] = y_true[ground_truth_counter]
 
     print('Done! Plotting now.')
     ###### PLOT DELIVERABLES #########################################################################################
     # 1. PLOT FUSED LOCATION DATA
-    utils.export_to_kml(x_est[:,0], x_est[:,1], x_true, y_true)
-    utils.plot_state_comparison(x_est[:,0], x_est[:,1], x_true, y_true)
+    utils.export_to_kml(x_est[:,0], x_est[:,1], x_true_arr, y_true_arr)
+    utils.plot_state_comparison_2D(x_est[:,0], x_est[:,1], x_true_arr, y_true_arr) # x vs y of GT vs estimated
+    # utils.plot_states(x_est, P_est, x_true_arr, y_true_arr, theta_true_arr)
+
+    # 
     
-    # TODO 2. PLOT MSE FROM GROUND TRUTH (EUCLIDEAN DISTANCE)
-    # TODO 3. PLOT GROUND TRUTH FOR COMPARISON
+    # x,y,theta over time vs Ground Truth and uncertainites
+    # error in x,y,theta over time vs Ground Truth
+    # euclidean distance error in x,y  over time vs Ground Truth
+    # all states over time
+    

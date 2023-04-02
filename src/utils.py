@@ -39,10 +39,8 @@ def local_to_gps_coord(x: list, y:list):
     """
     r_ns, r_ew, LAT_0, LON_0 = _compute_gps_conversion_params()
     # Convert linearized local frame to GPS
-    #x = x-72.5 # Tuned offset to adjust with Google Earth
-    #y = y-107 # Tuned offset to adjust with Google Earth
-    x = x - 76.50582406697139 # Tuned offset to adjust with Google earth
-    y = y - 108.31373031919006 # Tuned offset to adjust with Google earth
+    x = x-72.5 # Tuned offset to adjust with Google Earth
+    y = y-107 # Tuned offset to adjust with Google Earth
     lat = np.arcsin(x/r_ns) + LAT_0
     lon = np.arcsin(y/(r_ew*np.cos(LAT_0))) + LON_0
     lat = np.rad2deg(lat) # Latitude, in degrees
@@ -67,22 +65,22 @@ def export_to_kml(x: list, y:list, x_gt: list, y_gt:list):
     estimation_tag = tags[1]
     if x_gt is not None:
         # Ground truth has ~500,000 points
-        #x_gt = x_gt[1::200] # sample every 200th point
-        #y_gt = y_gt[1::200] # sample every 200th point
+        x_gt = x_gt[1::200] # sample every 200th point
+        y_gt = y_gt[1::200] # sample every 200th point
         lat_gt,lon_gt = local_to_gps_coord(x_gt,y_gt)
         formatted_coords_gt = _format_lat_lon(lat_gt, lon_gt)
         ground_truth_tag.text = formatted_coords_gt 
     if x is not None:
-        #x = x[1::200] # sample every 200th point
-        #y = y[1::200] # sample every 200th point
+        x = x[1::200] # sample every 200th point
+        y = y[1::200] # sample every 200th point
         lat_est,lon_est = local_to_gps_coord(x,y)
         formatted_coords_est = _format_lat_lon(lat_est, lon_est)
         estimation_tag.text = formatted_coords_est
     with open('output.kml', 'wb') as f:
         f.write(etree.tostring(root, xml_declaration=True, encoding='UTF-8', pretty_print=True))
 
-def plot_state_comparison(x: list, y:list, x_gt: list, y_gt:list):
-    """Plot local frame ground truth and estimated coords
+def plot_state_comparison_2D(x: list, y:list, x_gt: list, y_gt:list):
+    """Plot local frame ground truth and estimated coords on x-y plot
     Parameters: 
     - local frame estimated coords (x,y) = (North, East) [meters]
     - local frame ground truth coords (x_gt,y_gt) = (North, East) [meters]
@@ -90,6 +88,26 @@ def plot_state_comparison(x: list, y:list, x_gt: list, y_gt:list):
     plt.figure()
     # plt.scatter(y, x, s=1, c='b', linewidth=0, label='Estimated') # plot flipped since North,East
     # plt.scatter(y_gt, x_gt, c='r', s=1, linewidth=0, label='Ground Truth')
+    plt.plot(y, x, c='b', linewidth=1, label='Estimated') # plot flipped since North,East
+    plt.plot(y_gt, x_gt, c='r', linewidth=1, label='Ground Truth')
+    plt.axis('equal')
+    plt.legend()
+    plt.title('Comparison')
+    plt.xlabel('East [m]')
+    plt.ylabel('North [m]')
+    plt.show()
+
+
+def plot_states(x_est:np.ndarray, P_est:np.ndarray, x_true_arr:np.ndarray, y_true_arr:np.ndarray, theta_true_arr:np.ndarray):
+    """Plot local frame ground truth and estimated coords on x-y plot
+    Parameters: 
+    - local frame estimated coords (x,y) = (North, East) [meters]
+    - local frame ground truth coords (x_gt,y_gt) = (North, East) [meters]
+    """
+    N = len(x_true_arr)
+    # Generate list of relative timesteps, from 0 to last timestep in ground_truth
+    plt.figure()
+
     plt.plot(y, x, c='b', linewidth=1, label='Estimated') # plot flipped since North,East
     plt.plot(y_gt, x_gt, c='r', linewidth=1, label='Ground Truth')
     plt.axis('equal')
