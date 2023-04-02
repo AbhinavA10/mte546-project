@@ -288,4 +288,4 @@ if __name__ == "__main__":
     ###### PLOT DELIVERABLES #########################################################################################
     utils.export_to_kml(x_est[:,0], x_est[:,1], x_true_arr, y_true_arr, "Estimated", "Ground Truth")
     utils.plot_position_comparison_2D(x_est[:,0], x_est[:,1], x_true_arr, y_true_arr, "Estimated", "Ground Truth")
-    utils.plot_states(x_est, P_est, x_true_arr, y_true_arr, theta_true_arr)
+    # utils.plot_states(x_est, P_est, x_true_arr, y_true_arr, theta_true_arr)

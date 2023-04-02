@@ -120,12 +120,53 @@ def plot_position_comparison_2D_scatter(x1: list, y1:list, x2: list, y2:list, la
     plt.show(),
 
 def plot_states(x_est:np.ndarray, P_est:np.ndarray, x_true_arr:np.ndarray, y_true_arr:np.ndarray, theta_true_arr:np.ndarray):
-    #TODO:
-    # x,y,theta over time vs Ground Truth and uncertainites
-    # error in x,y,theta over time vs Ground Truth
-    # euclidean distance error in x,y  over time vs Ground Truth
-    # all states over time
     
-    N = len(x_true_arr)
+    # x_est = x | y | xdot | ydot | theta | omega
+    x       = x_est[:,0]
+    y       = x_est[:,1]
+    xdot    = x_est[:,2]
+    yodt    = x_est[:,3]
+    theta   = x_est[:,4]
+    omega   = x_est[:,5]
+
+    
     # Generate list of relative timesteps, from 0 to last timestep in ground_truth
+    N = len(x_true_arr)
+    #TODO:generate
+    
+    # x,y,theta over time vs Ground Truth
+    plt.figure()
+    plt.subplot(3, 1, 1)
+    plt.plot(t,x, label="x")
+    plt.plot(t,x_true_arr, label="x_true")
+    plt.legend()
+    plt.xlabel('Time [s]')
+    plt.ylabel('X Position [m]')
+    plt.subplot(3, 1, 2)
+    plt.plot(t,y, label="y")
+    plt.plot(t,y_true_arr, label="y_true")
+    plt.legend()
+    plt.xlabel('Time [s]')
+    plt.ylabel('Y Position [m]')
+    plt.subplot(3, 1, 3)
+    plt.plot(t,theta, label="theta")
+    plt.plot(t,theta_true_arr, label="theta_true")
+    plt.legend()
+    plt.xlabel('Time [s]')
+    plt.ylabel('Theta [rad]')
+    #TODO: plot uncertainities from P_est
+
+    plt.figure()
+    plt.plot(t,x, label="x")
+    plt.plot(t,x_true_arr, label="x_true")
+    plt.legend()
+    plt.title('Comparison')
+    plt.xlabel('Time [s]')
+    plt.ylabel('X Position [m]')
+
+    #TODO: plot error in x,y,theta over time vs Ground Truth
+    #TODO: plot euclidean distance error in x,y  over time vs Ground Truth
+    #TODO: plot all states over time
+    
+    plt.show(),
     
