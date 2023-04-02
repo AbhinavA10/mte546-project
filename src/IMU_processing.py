@@ -5,8 +5,8 @@ import numpy as np
 import pandas as pd
 from scipy.stats import norm
 
-file_name = '../Data/Sensor/2012-01-08/ms25.csv'
-file_name_euler = '../Data/Sensor/2012-01-08/ms25_euler.csv'
+file_name = 'ms25.csv'
+#file_name_euler = '../Data/Sensor/2012-01-08/ms25_euler.csv'
 
 def read_process_ms25(file_name):
 
@@ -86,7 +86,7 @@ def read_process_ms25(file_name):
         prev_pos_y = pos_y[i]
         prev_t = t_sec[i]
     
-    estimate_IMU_noise(accel_x_OG, accel_x)
+    estimate_IMU_noise(accel_y_OG, accel_y)
     
     # # # plot mag field 
     # # plt.figure()
@@ -101,7 +101,7 @@ def read_process_ms25(file_name):
     # # plot actual accel vs smoothed accel
     plt.figure()
     # accel x
-    plt.subplot(1, 3, 1)
+    plt.subplot(1, 2, 1)
     plt.plot(t_sec, accel_x_OG, 'b')
     plt.plot(t_sec, accel_x, 'r')
     plt.legend(['Original', 'Smooth'])
@@ -109,7 +109,7 @@ def read_process_ms25(file_name):
     plt.xlabel('time (s)')
     plt.ylabel('m/s^2')    
     # accel y
-    plt.subplot(1, 3, 2)
+    plt.subplot(1, 2, 2)
     plt.plot(t_sec, accel_y_OG, 'b')
     plt.plot(t_sec, accel_y, 'r')
     plt.legend(['Original', 'Smooth'])
@@ -117,45 +117,45 @@ def read_process_ms25(file_name):
     plt.xlabel('time (s)')
     plt.ylabel('m/s^2')       
     # accel z
-    plt.subplot(1, 3, 3)
-    plt.plot(t_sec, accel_z_OG, 'b')
-    plt.plot(t_sec, accel_z, 'r')
-    plt.legend(['Original', 'Smooth'])
-    plt.title('Acceleration z-dir')
-    plt.xlabel('time (s)')
-    plt.ylabel('m/s^2')    
-    plt.show()
+    # plt.subplot(1, 3, 3)
+    # plt.plot(t_sec, accel_z_OG, 'b')
+    # plt.plot(t_sec, accel_z, 'r')
+    # plt.legend(['Original', 'Smooth'])
+    # plt.title('Acceleration z-dir')
+    # plt.xlabel('time (s)')
+    # plt.ylabel('m/s^2')    
+    # plt.show()
        
-    # plot accel, vel, pos
-    plt.figure()
-    # accel 
-    plt.subplot(1, 3, 1)
-    plt.plot(t_sec, accel_x, 'r')
-    plt.plot(t_sec, accel_y, 'g')
-    # plt.plot(t_sec, accel_z, 'b')
-    plt.legend(['X', 'Y'])
-    plt.title('Acceleration')
-    plt.xlabel('time (s)')
-    plt.ylabel('m/s^2')
-    # vel
-    plt.subplot(1, 3, 2)
-    plt.plot(t_sec, vel_x, 'r')
-    plt.plot(t_sec, vel_y, 'g')
-    # plt.plot(t, vel_z, 'b')'
-    plt.legend(['X', 'Y'])
-    plt.title('Velocity')
-    plt.xlabel('time (s)')
-    plt.ylabel('m/s')
-    # pos
-    plt.subplot(1, 3, 3)
-    plt.plot(t_sec, pos_x, 'r')
-    plt.plot(t_sec, pos_y, 'g')
-    #plt.plot(t_sec, pos_z, 'b')
-    plt.legend(['X', 'Y'])
-    plt.title('Position')
-    plt.xlabel('time (s)')
-    plt.ylabel('m')
-    plt.show()
+    # # plot accel, vel, pos
+    # plt.figure()
+    # # accel 
+    # plt.subplot(1, 3, 1)
+    # plt.plot(t_sec, accel_x, 'r')
+    # plt.plot(t_sec, accel_y, 'g')
+    # # plt.plot(t_sec, accel_z, 'b')
+    # plt.legend(['X', 'Y'])
+    # plt.title('Acceleration')
+    # plt.xlabel('time (s)')
+    # plt.ylabel('m/s^2')
+    # # vel
+    # plt.subplot(1, 3, 2)
+    # plt.plot(t_sec, vel_x, 'r')
+    # plt.plot(t_sec, vel_y, 'g')
+    # # plt.plot(t, vel_z, 'b')'
+    # plt.legend(['X', 'Y'])
+    # plt.title('Velocity')
+    # plt.xlabel('time (s)')
+    # plt.ylabel('m/s')
+    # # pos
+    # plt.subplot(1, 3, 3)
+    # plt.plot(t_sec, pos_x, 'r')
+    # plt.plot(t_sec, pos_y, 'g')
+    # #plt.plot(t_sec, pos_z, 'b')
+    # plt.legend(['X', 'Y'])
+    # plt.title('Position')
+    # plt.xlabel('time (s)')
+    # plt.ylabel('m')
+    # plt.show()
 
     # plot angular rotation
     plt.figure()
@@ -170,7 +170,7 @@ def read_process_ms25(file_name):
     # plt.plot(t, rot_p, 'r')
     # plt.legend(['Original', 'Smooth'])
     # plt.subplot(1, 3, 3)
-    plt.title('Angular Rotation Rate Heading (z)')
+    plt.title('Angular Rotation Rate Yaw (z)')
     plt.plot(t_sec, rot_h_OG, 'b')
     plt.plot(t_sec, rot_h, 'r')
     plt.legend(['Original', 'Smooth'])
@@ -229,16 +229,20 @@ def estimate_IMU_noise(original_data, smooth_data):
     
     # norm fit of data
     (mu, sigma) = norm.fit(error)
+    print(f'sigma = {sigma}')
     # plot
     plt.figure()
     n, bins, patches = plt.hist(error, bins=30, alpha=0.75, facecolor='blue')
-    xmin, xmax = plt.xlim()
-    x = np.linspace(xmin, xmax, 100)
+    # x = norm.rvs(size=100000)
+    # y = np.linspace(-4,4, 1000)
+    # bin_width = (x.max() - x.min())/30
+    # plt.plot(y, norm.pdf(y) * 100000 * 30)
+    x = np.linspace(-3, 3, 100)
     y = norm.pdf(x, mu, sigma)
-    plt.plot(x, y, 'r', linewidth=2)
+    plt.plot(x, y, 'r')
     plt.xlabel('IMU Accel Error (m/s^2)')
     plt.ylabel('Count')
-    plt.title('IMU Error Histogram (x)')
+    plt.title('IMU Error Histogram (y)')
     plt.grid(True)
     plt.show()
     
