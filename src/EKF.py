@@ -15,6 +15,9 @@ import read_wheels
 import read_gps
 import read_ground_truth 
 
+R_WHEEL = np.diag([1, 1])  # measurement noise covariance, Guess
+R_GPS = np.diag([10, 10])  # measurement noise covariance, Guess
+
 # wrap theta measurements to [-pi, pi].
 # Accepts an angle measurement in radians and returns an angle measurement in radians
 def wraptopi(x):
@@ -24,36 +27,50 @@ def wraptopi(x):
         x = x + (np.floor(x / (-2 * np.pi)) + 1) * 2 * np.pi
     return x
 
-def motion_jacobian(ax_imu, ay_imu, omega_imu, dt, state_vector): # IMU inputs in robot frame
-    """Compute Jacobian for Motion Model"""
-    x_k, y_k, x_dot_k, y_dot_k, theta_k, omega_k = sp.symbols(
-        'x_k, y_k, x_dot_k, y_dot_k, theta_k, omega_k', real=True)
-    
-    ax_global = ax_imu*sp.cos(-theta_k) - ay_imu*sp.sin(-theta_k)
-    ay_global = ax_imu*sp.sin(-theta_k) - ay_imu*sp.cos(-theta_k)
-    
-    f1 = x_k + x_dot_k*dt + 0.5*ax_global*dt**2
-    f2 = y_k + y_dot_k*dt + 0.5*ay_global*dt**2
-    f3 = x_dot_k + ax_global*dt
-    f4 = y_dot_k + ay_global*dt
-    f5 = theta_k + omega_imu*dt
-    f6 = omega_imu
+##### Symbolic Variables #####
+x_k, y_k, x_dot_k, y_dot_k, theta_k, omega_k = sp.symbols(
+    'x_k, y_k, x_dot_k, y_dot_k, theta_k, omega_k', real=True)
+ax_imu, ay_imu, omega_imu, dt_sym = sp.symbols(
+    'ax_imu, ay_imu, omega_imu, dt', real=True)
 
-    F = sp.Matrix([f1, f2, f3, f4, f5, f6]).jacobian([x_k, y_k, x_dot_k, y_dot_k, theta_k, omega_k])
+##### Symbolic Jacobian for Motion Model #####
+ax_global = ax_imu*sp.cos(-theta_k) - ay_imu*sp.sin(-theta_k)
+ay_global = ax_imu*sp.sin(-theta_k) - ay_imu*sp.cos(-theta_k)
+f1 = x_k + x_dot_k*dt_sym + 0.5*ax_global*dt_sym**2
+f2 = y_k + y_dot_k*dt_sym + 0.5*ay_global*dt_sym**2
+f3 = x_dot_k + ax_global*dt_sym
+f4 = y_dot_k + ay_global*dt_sym
+f5 = theta_k + omega_imu*dt_sym
+f6 = omega_imu
+F_JACOB = sp.Matrix([f1, f2, f3, f4, f5, f6]).jacobian([x_k, y_k, x_dot_k, y_dot_k, theta_k, omega_k])
 
-    F = np.array(F.subs([(x_k,      state_vector[0]),
+### Symbolic Jacobian for Wheel Measurement
+ROBOT_WIDTH_WHEEL_BASE = 0.562356 # T [m], From SolidWorks Model
+v_c     = sp.sqrt(x_dot_k**2 + y_dot_k**2)
+v_left  = v_c - (ROBOT_WIDTH_WHEEL_BASE*omega_k)/2
+v_right = v_c + (ROBOT_WIDTH_WHEEL_BASE*omega_k)/2
+h1 = v_left
+h2 = v_right
+
+H_JACOB = sp.Matrix([h1, h2]).jacobian([x_k, y_k, x_dot_k, y_dot_k, theta_k, omega_k])
+
+def motion_jacobian(_ax, _ay, _omega, _dt, state_vector): # IMU inputs in robot frame
+    """Numerical Jacobian for Motion Model"""
+    return np.array(F_JACOB.subs([(x_k,      state_vector[0]),
                          (y_k,      state_vector[1]),
                          (x_dot_k,  state_vector[2]),
                          (y_dot_k,  state_vector[3]),
                          (theta_k,    state_vector[4]),
-                         (omega_k,    state_vector[5])
+                         (omega_k,    state_vector[5]),
+                         (ax_imu,  _ax),
+                         (ay_imu,    _ay),
+                         (omega_imu,    _omega),
+                         (dt_sym,    _dt)
                          ])).astype(np.float64)
-    return F
 
 # Measurement models
 def predict_z_hat_wheel(state_vector):
     """Predict Z_hat for Wheel Velocity Measurements"""
-    ROBOT_WIDTH_WHEEL_BASE = 0.562356 # T [m], From SolidWorks Model
     vel_x, vel_y, omega = state_vector[2], state_vector[3], state_vector[5]
     v_c     = math.sqrt(vel_x**2 + vel_y**2)
     v_left  = v_c - (ROBOT_WIDTH_WHEEL_BASE*omega)/2
@@ -63,36 +80,20 @@ def predict_z_hat_wheel(state_vector):
 
 def predict_z_hat_gps(state_vector):
     """Predict Z_hat for GPS measurements"""
-    x, y = state_vector[0], state_vector[1]
-    z_gps = np.array([x, y])
-    return z_gps
+    return np.array([state_vector[0], state_vector[1]])
 
 def measurement_jacobian_wheel(state_vector):
-    """Compute Jacobian for Wheel Velocity Measurement Model"""
-    x_k, y_k, x_dot_k, y_dot_k, theta_k, omega_k = sp.symbols(
-        'x_k, y_k, x_dot_k, y_dot_k, theta_k, omega_k', real=True)
-    
-    ROBOT_WIDTH_WHEEL_BASE = 0.562356 # T [m], From SolidWorks Model
-    v_c     = sp.sqrt(x_dot_k**2 + y_dot_k**2)
-    v_left  = v_c - (ROBOT_WIDTH_WHEEL_BASE*omega_k)/2
-    v_right = v_c + (ROBOT_WIDTH_WHEEL_BASE*omega_k)/2
-    h1 = v_left
-    h2 = v_right
-    
-    H = sp.Matrix([h1, h2]).jacobian([x_k, y_k, x_dot_k, y_dot_k, theta_k, omega_k])
-
-    H = np.array(H.subs([(x_k,      state_vector[0]),
-                         (y_k,      state_vector[1]),
-                         (x_dot_k,  state_vector[2]),
-                         (y_dot_k,  state_vector[3]),
-                         (theta_k,    state_vector[4]),
-                         (omega_k,    state_vector[5])
-                         ])).astype(np.float64)
-    return H
+    """Numerical Jacobian for Wheel Velocity Measurement Model"""
+    return np.array(H_JACOB.subs([(x_k,      state_vector[0]),
+                            (y_k,      state_vector[1]),
+                            (x_dot_k,  state_vector[2]),
+                            (y_dot_k,  state_vector[3]),
+                            (theta_k,    state_vector[4]),
+                            (omega_k,    state_vector[5])
+                            ])).astype(np.float64)
 
 def measurement_update_wheel(wheel_vel_left, wheel_vel_right, P_pred, x_pred):
     """Perform Correction using Wheel Velocity Measurement"""
-    R = np.diag([1, 1])  # measurement noise covariance, Guess
 
     # Compute measurement Jacobian using current estimated state.
     H = measurement_jacobian_wheel(x_pred)
@@ -102,7 +103,7 @@ def measurement_update_wheel(wheel_vel_left, wheel_vel_right, P_pred, x_pred):
     z = np.array([wheel_vel_left, wheel_vel_right])
     # Compute the Kalman gain.
     K = np.matmul(np.matmul(P_pred, np.transpose(H)),
-                  np.linalg.inv(np.matmul((np.matmul(H, P_pred)), np.transpose(H)) + R))
+                  np.linalg.inv(np.matmul((np.matmul(H, P_pred)), np.transpose(H)) + R_WHEEL))
     x_corrected = x_pred + np.matmul(K, (z - z_hat))
     x_corrected[4] = wraptopi(x_corrected[4])
 
@@ -113,28 +114,27 @@ def measurement_update_wheel(wheel_vel_left, wheel_vel_right, P_pred, x_pred):
 
 def measurement_jacobian_gps(state_vector):
     """Compute Jacobian for GPS Measurement Model"""
-    x_k, y_k, x_dot_k, y_dot_k, theta_k, omega_k = sp.symbols(
-        'x_k, y_k, x_dot_k, y_dot_k, theta_k, omega_k', real=True)
+    # x_k, y_k, x_dot_k, y_dot_k, theta_k, omega_k = sp.symbols(
+    #     'x_k, y_k, x_dot_k, y_dot_k, theta_k, omega_k', real=True)
 
-    # Note: GPS Measurement Model is linear
-    h1 = x_k
-    h2 = y_k
+    # Note: GPS Measurement Model is linear -> Jacobian actually looks like a C Matrix
+    # h1 = x_k
+    # h2 = y_k
 
-    H = sp.Matrix([h1, h2]).jacobian([x_k, y_k, x_dot_k, y_dot_k, theta_k, omega_k])
-
-    H = np.array(H.subs([(x_k,      state_vector[0]),
-                         (y_k,      state_vector[1]),
-                         (x_dot_k,  state_vector[2]),
-                         (y_dot_k,  state_vector[3]),
-                         (theta_k,    state_vector[4]),
-                         (omega_k,    state_vector[5])
-                         ])).astype(np.float64)
-    return H
-
+    # Results in Matrix shown below
+    # H = sp.Matrix([h1, h2]).jacobian([x_k, y_k, x_dot_k, y_dot_k, theta_k, omega_k])
+    # H = np.array(H.subs([(x_k,      state_vector[0]),
+    #                      (y_k,      state_vector[1]),
+    #                      (x_dot_k,  state_vector[2]),
+    #                      (y_dot_k,  state_vector[3]),
+    #                      (theta_k,    state_vector[4]),
+    #                      (omega_k,    state_vector[5])
+    #                      ])).astype(np.float64)
+    return np.array([[1, 0, 0, 0, 0, 0,],
+                     [0, 1, 0, 0, 0, 0,]])
 
 def measurement_update_gps(x, y, P_pred, x_pred):
     """Perform Correction using GPS Measurement"""
-    R = np.diag([10, 10])  # measurement noise covariance, Guess
 
     # Compute measurement Jacobian using current estimated state.
     H = measurement_jacobian_gps(x_pred)
@@ -144,7 +144,7 @@ def measurement_update_gps(x, y, P_pred, x_pred):
     z = np.array([x, y])
     # Compute the Kalman gain.
     K = np.matmul(np.matmul(P_pred, np.transpose(H)),
-                  np.linalg.inv(np.matmul((np.matmul(H, P_pred)), np.transpose(H)) + R))
+                  np.linalg.inv(np.matmul((np.matmul(H, P_pred)), np.transpose(H)) + R_GPS))
     x_corrected = x_pred + np.matmul(K, (z - z_hat))
     x_corrected[4] = wraptopi(x_corrected[4])
 
@@ -152,6 +152,16 @@ def measurement_update_gps(x, y, P_pred, x_pred):
     P_corrected = np.matmul((np.identity(6) - np.matmul(K, H)), P_pred)
 
     return x_corrected, P_corrected
+
+# Find nearest index to value in array
+def find_nearest_index(array:np.ndarray, time): # array of timesteps, time to search for
+    """Find closest time in array, that has already passed"""
+    diff_arr = array - time
+    idx = np.where(diff_arr <= 0, diff_arr, -np.inf).argmax()
+    return idx
+
+# [-0.02 +0.02 +2]
+# [-0.02  -inf -inf]
 
 if __name__ == "__main__":
 
@@ -168,10 +178,12 @@ if __name__ == "__main__":
     gps_data     = read_gps.read_gps(file_date[0]) # 2.5 or 6 Hz
     imu_data     = read_imu.read_imu(file_date[0]) # 47 Hz
     wheel_data   = read_wheels.read_wheels(file_date[0]) # 37 Hz
-    #TODO: truncate above datas to first 1000 datapoints, for testing
-    #TODO: speed up code
-    #TODO: Correct relative timestamping of each data type -- need to make relative to ground truth timestamps instead
-        # Alternatively, don't use relative timestamps but use the original Unix Timestamp for timesyncing
+    #Truncate data to first 20000 datapoints, for testing
+    ground_truth = ground_truth[:20000,:]
+    gps_data     = gps_data[:20000,:]
+    imu_data     = imu_data[:20000,:]
+    wheel_data   = wheel_data[:20000,:]
+    # Using the original Unix Timestamp for timesyncing
 
     x_true   = ground_truth[:, 1] # North
     y_true   = ground_truth[:, 2] # East
@@ -189,7 +201,7 @@ if __name__ == "__main__":
 
     # Generate list of timesteps, from 0 to last timestep in ground_truth
     dt = 1/50
-    t = np.arange(0, ground_truth[-1,0], dt)
+    t = np.arange(ground_truth[0,0], ground_truth[-1,0], dt)
     a_x           =   imu_data[:,1]
     a_y           =   imu_data[:,2]
     omega         =   imu_data[:,3]
@@ -205,6 +217,9 @@ if __name__ == "__main__":
     gps_counter   = 0
     wheel_counter = 0
     imu_counter   = 0
+    prev_gps_counter   = -1
+    prev_wheel_counter = -1
+    prev_imu_counter   = -1
 
     # Start at 1 because we have initial prediction from ground truth.
     for k in range(1, len(t)):
@@ -228,24 +243,28 @@ if __name__ == "__main__":
         # Propagate uncertainty by updating the covariance
         P_predicted = np.matmul(np.matmul(F, P_est[k-1]), np.transpose(F)) + Q
 
-        if t[k] >= imu_times[imu_counter]: # IMU data available
-            if imu_counter < len(imu_times)-1: #protect against overflow near end of simulation
-                imu_counter += 1
+        imu_counter = find_nearest_index(imu_times, t[k]) # Grab closest IMU data
+        gps_counter = find_nearest_index(gps_times, t[k]) # Grab closest IMU data
+        wheel_counter = find_nearest_index(wheel_times, t[k]) # Grab closest IMU data
         
-        # CORRECTION - Correct with measurement models if available
-        if t[k] >= gps_times[gps_counter]:
-            x_predicted, P_predicted = measurement_update_gps(gps_x[gps_counter], gps_y[gps_counter], P_predicted, x_predicted)
-            if gps_counter < len(gps_times)-1: #protect against overflow near end of simulation
-                gps_counter += 1
+        #print("Times", t[k], wheel_times[wheel_counter])
 
-        if t[k] >= wheel_times[wheel_counter]:
+        # CORRECTION - Correct with measurement models if available
+        if gps_counter != prev_gps_counter: # Use GPS data only if new
+            # print("Used GPS Data: ", gps_counter, prev_gps_counter)
+            x_predicted, P_predicted = measurement_update_gps(gps_x[gps_counter], gps_y[gps_counter], P_predicted, x_predicted)
+            prev_gps_counter = gps_counter
+
+        # CORRECTION - Correct with measurement models if available
+        if wheel_counter != prev_wheel_counter:
+            #print("Used Wheel data: ", wheel_counter, prev_wheel_counter)
             x_predicted, P_predicted = measurement_update_wheel(v_left_wheel[wheel_counter], v_right_wheel[wheel_counter], P_predicted, x_predicted)
-            if wheel_counter < len(wheel_times)-1: #protect against overflow near end of simulation
-                wheel_counter += 1
+            prev_wheel_counter = wheel_counter
         
         # Set final state predictions for this kth timestep.
         x_est[k] = x_predicted
         P_est[k] = P_predicted
+
     print('Done! Plotting now.')
     ###### PLOT DELIVERABLES #########################################################################################
     # 1. PLOT FUSED LOCATION DATA
@@ -253,8 +272,3 @@ if __name__ == "__main__":
     utils.plot_state_comparison(x_est[:,0], x_est[:,1], ground_truth[:,1], ground_truth[:,2])
     # TODO 2. PLOT MSE FROM GROUND TRUTH (EUCLIDEAN DISTANCE)
     # TODO 3. PLOT GROUND TRUTH FOR COMPARISON
-    #TODO: how to make time-synced plots with ground truth?
-    
-    
-
-

@@ -11,7 +11,7 @@ def read_imu(dataset_date):
     t          = ms25[:, 0]
     
     # Relative timestamps
-    t = t-t[0]
+    # t = t-t[0]
     t = t/1000000
     utils.calculate_hz("IMU", t) # 47 Hz
 

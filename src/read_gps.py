@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import utils
 
-USE_RTK = False # change as needed
+USE_RTK = True # change as needed
 
 # Accept a filepath to the CSV of interest and return Numpy array with data
 def read_gps(dataset_date):
@@ -29,7 +29,7 @@ def read_gps(dataset_date):
     t = gps[:,0]
     lat = gps[:, 3]
     lng = gps[:, 4]
-    t = t-t[0] # make timestamps relative
+    # t = t-t[0] # make timestamps relative
     t = t/1000000
     x,y = utils.gps_to_local_coord(lat, lng) #North,East
     gps_data = np.array([])

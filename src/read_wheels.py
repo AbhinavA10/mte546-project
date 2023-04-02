@@ -13,7 +13,7 @@ def read_wheels(dataset_date):
     robot_vel = 0.5*(wheel_vel[:, 1] + wheel_vel[:, 2])
     
     # Relative timestamps
-    t = t-t[0]
+    # t = t-t[0]
     t = t/1000000
 
     utils.calculate_hz("Wheel Odometry", t) # 37 Hz
