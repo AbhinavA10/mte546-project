@@ -17,12 +17,6 @@ def read_gps(dataset_date):
         filepath = f"dataset/{dataset_date}/gps_rtk.csv"
     
     gps = np.loadtxt(filepath, delimiter = ",")
-    
-    if USE_RTK:
-        utils.calculate_hz("GPS RTK", gps[:,0]) # 2.5 Hz
-    else:
-        utils.calculate_hz("GPS", gps[:,0]) # 6 Hz
-    
     # Preprocessing
     gps = np.delete(gps, np.where((gps[:,1] < 2 ))[0], axis=0) # filter out rows where fix_mode<2 (invalid data)
     # perform conversion from lat/lon to local frame
@@ -31,6 +25,11 @@ def read_gps(dataset_date):
     lng = gps[:, 4]
     # t = t-t[0] # make timestamps relative
     t = t/1000000
+    if USE_RTK:
+        utils.calculate_hz("GPS RTK", t) # 2.5 Hz
+    else:
+        utils.calculate_hz("GPS", t) # 6 Hz
+    
     x,y = utils.gps_to_local_coord(lat, lng) #North,East
     gps_data = np.array([])
     gps_data = np.vstack((t, x, y)).T

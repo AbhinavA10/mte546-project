@@ -16,7 +16,7 @@ import read_gps
 import read_ground_truth 
 
 R_WHEEL = np.diag([1, 1])  # measurement noise covariance, Guess
-R_GPS = np.diag([10, 10])  # measurement noise covariance, Guess
+R_GPS = np.diag([0.3, 0.3])  # measurement noise covariance, Guess
 
 # wrap theta measurements to [-pi, pi].
 # Accepts an angle measurement in radians and returns an angle measurement in radians
@@ -200,7 +200,7 @@ if __name__ == "__main__":
     ################################ 1. MAIN FILTER LOOP ##########################################################################
 
     # Generate list of timesteps, from 0 to last timestep in ground_truth
-    dt = 1/50
+    dt = 1/10
     t = np.arange(ground_truth[0,0], ground_truth[-1,0], dt)
     a_x           =   imu_data[:,1]
     a_y           =   imu_data[:,2]

@@ -15,7 +15,6 @@ def read_wheels(dataset_date):
     # Relative timestamps
     # t = t-t[0]
     t = t/1000000
-
     utils.calculate_hz("Wheel Odometry", t) # 37 Hz
 
     # have the following format:
