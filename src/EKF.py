@@ -17,7 +17,7 @@ import read_wheels
 import read_gps
 import read_ground_truth 
 
-# wrap yaw measurements to [-pi, pi].
+# wrap theta measurements to [-pi, pi].
 # Accepts an angle measurement in radians and returns an angle measurement in radians
 def wraptopi(x):
     if x > np.pi:
@@ -26,26 +26,26 @@ def wraptopi(x):
         x = x + (np.floor(x / (-2 * np.pi)) + 1) * 2 * np.pi
     return x
 
-def motion_jacobian(ax_imu, ay_imu, psidot, dt, state_vector): # IMU inputs in robot frame
-    # state_vector = [x_k, y_k, x_dot_k, y_dot_k, psi_k]
-    x_k, y_k, x_dot_k, y_dot_k, psi_k = sp.symbols(
-        'x_k, y_k, x_dot_k, y_dot_k, psi_k', real=True)
+def motion_jacobian(ax_imu, ay_imu, omega, dt, state_vector): # IMU inputs in robot frame
+    # state_vector = [x_k, y_k, x_dot_k, y_dot_k, theta_k]
+    x_k, y_k, x_dot_k, y_dot_k, theta_k = sp.symbols(
+        'x_k, y_k, x_dot_k, y_dot_k, theta_k', real=True)
     
-    ax_global = ax_imu*sp.cos(-psi_k) - ay_imu*sp.sin(-psi_k)
-    ay_global = ax_imu*sp.sin(-psi_k) - ay_imu*sp.cos(-psi_k)
+    ax_global = ax_imu*sp.cos(-theta_k) - ay_imu*sp.sin(-theta_k)
+    ay_global = ax_imu*sp.sin(-theta_k) - ay_imu*sp.cos(-theta_k)
     f1 = x_k + x_dot_k*dt + 0.5*ax_global*dt**2
     f2 = y_k + y_dot_k*dt + 0.5*ay_global*dt**2
     f3 = x_dot_k + ax_global*dt
     f4 = y_dot_k + ay_global*dt
-    f5 = psi_k + psidot*dt
+    f5 = theta_k + omega*dt
 
-    F = sp.Matrix([f1, f2, f3, f4, f5]).jacobian([x_k, y_k, x_dot_k, y_dot_k, psi_k])
+    F = sp.Matrix([f1, f2, f3, f4, f5]).jacobian([x_k, y_k, x_dot_k, y_dot_k, theta_k])
 
     F = np.array(F.subs([(x_k,      state_vector[0]),
                          (y_k,      state_vector[1]),
                          (x_dot_k,  state_vector[2]),
                          (y_dot_k,  state_vector[3]),
-                         (psi_k,    state_vector[4])
+                         (theta_k,    state_vector[4])
                          ])).astype(np.float64)
     return F
 
@@ -55,18 +55,18 @@ def measurement_jacobian():
 
 # update measurement models
 def z_hat_wheel(state_vector, dt):
-    vel_x, vel_y, yaw_dot = state_vector #TODO
+    vel_x, vel_y, omega = state_vector #TODO
     v_c = math.sqrt(vel_x**2 + vel_y**2)
-    v_right = v_c + (dt*yaw_dot)/2
-    v_left = v_c - (dt*yaw_dot)/2
+    v_right = v_c + (dt*omega)/2
+    v_left = v_c - (dt*omega)/2
 
     z_wheel_vel = [v_left, v_right]
     return z_wheel_vel
 
 def z_hat_wheel(state_vector, dt):
     v_c = math.sqrt(vel_x**2 + vel_y**2)
-    v_right = v_c + (dt*yaw_dot)/2
-    v_left = v_c - (dt*yaw_dot)/2
+    v_right = v_c + (dt*omega)/2
+    v_left = v_c - (dt*omega)/2
 
     z_wheel_vel = [v_left, v_right]
     return z_wheel_vel
@@ -107,8 +107,8 @@ def measurement_update(measurements, P_check, x_check):
 # PLEASE ENSURE THAT ALL STATES AND INPUTS TO THE SYSTEM ARE IN THE GLOBAL FRAME OF REFERENCE :-)
 # PLEASE MAKE USE OF WRAPTOPI() WHEN SUPPLYING ROBOT HEADING OR ROBOT ANGULAR VELOCITY
 
-# CURRENT STATE MODEL IS: X = [x, y, xdot, ydot, psi]
-# CURRENT INPUT MODEL IS: U = [ax, ay, yaw_dot]
+# CURRENT STATE MODEL IS: X = [x, y, x_dot, y_dot, theta]
+# CURRENT INPUT MODEL IS: U = [ax, ay, omega]
 
 if __name__ == "__main__":
 
@@ -127,14 +127,14 @@ if __name__ == "__main__":
 
     x_true   = ground_truth[:, 1] # North
     y_true   = ground_truth[:, 2] # East
-    psi_true = ground_truth[:, 3] # Heading
+    theta_true = ground_truth[:, 3] # Heading
 
     N     = len(x_true)
     x_est = np.zeros([N, 5]) 
     P_est = np.zeros([N, 5, 5])  # state covariance matrices
 
-    # x_est = x | y | xdot | ydot | psi
-    x_est[0] = np.array([x_true[0], y_true[0], 0, 0, psi_true[0]])  # initial state
+    # x_est = x | y | xdot | ydot | theta
+    x_est[0] = np.array([x_true[0], y_true[0], 0, 0, theta_true[0]])  # initial state
     P_est[0] = np.diag([1, 1, 1, 1, 1])  # initial state covariance TO-DO: TUNE THIS TO TRAIN
 
     ################################ 1. MAIN FILTER LOOP ##########################################################################
@@ -145,7 +145,7 @@ if __name__ == "__main__":
 
     a_x           =   imu_data[:,1]
     a_y           =   imu_data[:,2]
-    psi_dot       =   imu_data[:,3]
+    omega       =   imu_data[:,3]
     gps_x         =   gps_data[:,1]
     gps_y         =   gps_data[:,2]
     v_robot       = wheel_data[:,1]
@@ -165,7 +165,7 @@ if __name__ == "__main__":
         ax = a_global[0]
         ay = a_global[1]
 
-        psidot = wraptopi(psi_dot[k])
+        omega = wraptopi(omega[k])
 
         # 1-1. INITIAL UPDATE OF THE ROBOT STATE USING MEASUREMENTS (IMU, ETC.)
         vel_vec_wheels = np.array([v_robot[k-1], 0])
@@ -179,7 +179,7 @@ if __name__ == "__main__":
                                             y_dot_k + 0.5*ay*dt,
                                             ax,
                                             ay,
-                                            psidot])
+                                            omega])
 
         # 1-2 Linearize Motion Model
         # Compute the Jacobian of f w.r.t. the last state. TODO
