@@ -63,7 +63,7 @@ def export_to_kml(x: list, y:list, x_gt: list, y_gt:list):
     ground_truth_tag = tags[0]
     estimation_tag = tags[1]
     if x_gt is not None:
-        #TODO: skip datapoints in list to reduce file size. Ground truth has ~500,000 points
+        # Ground truth has ~500,000 points
         x_gt = x_gt[1::200] # sample every 200th point
         y_gt = y_gt[1::200] # sample every 200th point
         print(len(x_gt))
