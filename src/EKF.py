@@ -15,9 +15,15 @@ import read_wheels
 import read_gps
 import read_ground_truth 
 
+USE_RTK = False
+KALMAN_FILTER_RATE = 1
+TRUNCATION_END = 50000 # Ground Truth has 500000 data points, filter for testing. Set to -1 for all data
+
 R_WHEEL = np.diag([1, 1])  # measurement noise covariance, Guess
-R_GPS = np.diag([0.1, 0.1])  # measurement noise covariance, Guess
-USE_RTK = True
+R_GPS   = np.diag([10, 10])  # measurement noise covariance, Guess
+if USE_RTK:
+    R_GPS = np.diag([0.1, 0.1])  # measurement noise covariance, Guess
+Q = np.diag([0.1, 0.1, 1, 1, 0.1, 1])  # input noise covariance, Guess
 
 FILE_DATES = ["2012-01-08", "2012-01-15", "2012-01-22", "2012-02-02", "2012-02-04", "2012-02-05", "2012-02-12", 
               "2012-02-18", "2012-02-19", "2012-03-17", "2012-03-25", "2012-03-31", "2012-04-29", "2012-05-11", 
@@ -177,17 +183,16 @@ if __name__ == "__main__":
     # CURRENT STATE MODEL IS: X = [x, y, x_dot, y_dot, theta, omega]
     # CURRENT INPUT MODEL IS: U = [ax, ay, omega]
 
-    Q = np.diag([0.1, 0.1, 1, 1, 0.1, 1])  # input noise covariance, Guess
 
     ground_truth = read_ground_truth.read_ground_truth(FILE_DATES[-1]) # 107 Hz
     gps_data     = read_gps.read_gps(FILE_DATES[-1], USE_RTK) # 2.5 or 6 Hz
     imu_data     = read_imu.read_imu(FILE_DATES[-1]) # 47 Hz
     wheel_data   = read_wheels.read_wheels(FILE_DATES[-1]) # 37 Hz
-    #Truncate data to first 20000 datapoints, for testing
-    ground_truth = ground_truth[:50000,:]
-    gps_data     = gps_data[:50000,:]
-    imu_data     = imu_data[:50000,:]
-    wheel_data   = wheel_data[:50000,:]
+    #Truncate data to first few datapoints, for testing
+    ground_truth = ground_truth[:TRUNCATION_END,:]
+    gps_data     = gps_data[:TRUNCATION_END,:]
+    imu_data     = imu_data[:TRUNCATION_END,:]
+    wheel_data   = wheel_data[:TRUNCATION_END,:]
     # Using the original Unix Timestamp for timesyncing
 
     x_true     = ground_truth[:, 1] # North
@@ -196,7 +201,7 @@ if __name__ == "__main__":
     true_times = ground_truth[:, 0]
 
     # Generate list of timesteps, from 0 to last timestep in ground_truth
-    dt = 1/1 # 1/Hz = seconds
+    dt = 1/KALMAN_FILTER_RATE # 1/Hz = seconds
     t = np.arange(ground_truth[0,0], ground_truth[-1,0], dt)
     N     = len(t)
     x_est = np.zeros([N, 6]) 
@@ -206,9 +211,12 @@ if __name__ == "__main__":
     x_est[0] = np.array([x_true[0], y_true[0], 0, 0, theta_true[0], 0])  # initial state
     P_est[0] = np.diag([1, 1, 1, 1, 1, 1])  # initial state covariance TO-DO: TUNE THIS TO TRAIN
     
-    x_true_arr = np.zeros([N-1, 1]) # Keep track of corresponding truths
-    y_true_arr = np.zeros([N-1, 1])
-    theta_true_arr = np.zeros([N-1, 1])
+    x_true_arr        = np.zeros([N]) # Keep track of corresponding truths
+    y_true_arr        = np.zeros([N])
+    theta_true_arr    = np.zeros([N])
+    x_true_arr[0]     = x_true[0]  # initial state
+    y_true_arr[0]     = y_true[0]
+    theta_true_arr[0] = theta_true[0]
 
     ################################ 1. MAIN FILTER LOOP ##########################################################################
 
@@ -280,12 +288,12 @@ if __name__ == "__main__":
         P_est[k] = P_predicted
         
         # Keep track of corresponding Ground Truths at the same timestep
-        x_true_arr[k-1] = x_true[ground_truth_counter]
-        y_true_arr[k-1] = y_true[ground_truth_counter]
-        theta_true_arr[k-1] = theta_true[ground_truth_counter]
+        x_true_arr[k] = x_true[ground_truth_counter]
+        y_true_arr[k] = y_true[ground_truth_counter]
+        theta_true_arr[k] = theta_true[ground_truth_counter]
 
     print('Done! Plotting now.')
     ###### PLOT DELIVERABLES #########################################################################################
     utils.export_to_kml(x_est[:,0], x_est[:,1], x_true_arr, y_true_arr, "Estimated", "Ground Truth")
     utils.plot_position_comparison_2D(x_est[:,0], x_est[:,1], x_true_arr, y_true_arr, "Estimated", "Ground Truth")
-    # utils.plot_states(x_est, P_est, x_true_arr, y_true_arr, theta_true_arr)
+    utils.plot_states(x_est, P_est, x_true_arr, y_true_arr, theta_true_arr, t)
