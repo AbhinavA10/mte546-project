@@ -5,11 +5,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import math
 
-# Imports for sympy
 import sympy as sp
 import sys
-import mpmath
-sys.modules['sympy.mpmath'] = mpmath
 import utils
 
 # Imports for reading ground truth
@@ -77,14 +74,14 @@ def measurement_jacobian_wheel(state_vector):
     
     ROBOT_WIDTH_WHEEL_BASE = 0.562356 # T [m], From SolidWorks Model
     v_c     = sp.sqrt(x_dot_k**2 + y_dot_k**2)
-    v_left  = v_c - (ROBOT_WIDTH_WHEEL_BASE*omega)/2
-    v_right = v_c + (ROBOT_WIDTH_WHEEL_BASE*omega)/2
+    v_left  = v_c - (ROBOT_WIDTH_WHEEL_BASE*omega_k)/2
+    v_right = v_c + (ROBOT_WIDTH_WHEEL_BASE*omega_k)/2
     h1 = v_left
     h2 = v_right
     
     H = sp.Matrix([h1, h2]).jacobian([x_k, y_k, x_dot_k, y_dot_k, theta_k, omega_k])
 
-    H = np.array(F.subs([(x_k,      state_vector[0]),
+    H = np.array(H.subs([(x_k,      state_vector[0]),
                          (y_k,      state_vector[1]),
                          (x_dot_k,  state_vector[2]),
                          (y_dot_k,  state_vector[3]),
@@ -114,7 +111,7 @@ def measurement_update_wheel(wheel_vel_left, wheel_vel_right, P_pred, x_pred):
 
     return x_corrected, P_corrected
 
-def measurement_jacobian_gps(state_vector, dt):
+def measurement_jacobian_gps(state_vector):
     """Compute Jacobian for GPS Measurement Model"""
     x_k, y_k, x_dot_k, y_dot_k, theta_k, omega_k = sp.symbols(
         'x_k, y_k, x_dot_k, y_dot_k, theta_k, omega_k', real=True)
@@ -125,7 +122,7 @@ def measurement_jacobian_gps(state_vector, dt):
 
     H = sp.Matrix([h1, h2]).jacobian([x_k, y_k, x_dot_k, y_dot_k, theta_k, omega_k])
 
-    H = np.array(F.subs([(x_k,      state_vector[0]),
+    H = np.array(H.subs([(x_k,      state_vector[0]),
                          (y_k,      state_vector[1]),
                          (x_dot_k,  state_vector[2]),
                          (y_dot_k,  state_vector[3]),
@@ -163,7 +160,7 @@ if __name__ == "__main__":
     # CURRENT STATE MODEL IS: X = [x, y, x_dot, y_dot, theta, omega]
     # CURRENT INPUT MODEL IS: U = [ax, ay, omega]
 
-    Q = np.diag([0.1, 0.1, 1, 1, 0.1])  # input noise covariance, Guess
+    Q = np.diag([0.1, 0.1, 1, 1, 0.1, 1])  # input noise covariance, Guess
 
     file_date = ["2013-04-05", "", ""]
 
@@ -224,7 +221,7 @@ if __name__ == "__main__":
         x_predicted[4] = wraptopi(x_predicted[4])
         x_predicted[5] = omega[imu_counter]
         # Compute the Jacobian of f w.r.t. the last state.
-        F = motion_jacobian(a_x[imu_counter], a_y[imu_counter], omega, dt, x_est[k-1])
+        F = motion_jacobian(a_x[imu_counter], a_y[imu_counter], omega[imu_counter], dt, x_est[k-1])
         # Propagate uncertainty by updating the covariance
         P_predicted = np.matmul(np.matmul(F, P_est[k-1]), np.transpose(F)) + Q
 
