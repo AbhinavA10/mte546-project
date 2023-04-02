@@ -207,7 +207,7 @@ if __name__ == "__main__":
     omega         =   imu_data[:,3]
     gps_x         =   gps_data[:,1]
     gps_y         =   gps_data[:,2]
-    #v_robot       = wheel_data[:,1]
+    #v_robot      = wheel_data[:,1]
     v_left_wheel  = wheel_data[:,2]
     v_right_wheel = wheel_data[:,3]
 
@@ -221,9 +221,11 @@ if __name__ == "__main__":
     prev_wheel_counter = -1
     prev_imu_counter   = -1
 
+    utils.plot_state_comparison(gps_x, gps_y, x_true, y_true)    
+
     # Start at 1 because we have initial prediction from ground truth.
     for k in range(1, len(t)):
-        print(k)
+        # print(k)
 
         # PREDICTION - UPDATE OF THE ROBOT STATE USING MOTION MODEL AND INPUTS (IMU)
         ax_global = a_x[imu_counter]*sp.cos(-x_est[k-1, 4]) - a_y[imu_counter]*sp.sin(-x_est[k-1, 4])
@@ -268,7 +270,10 @@ if __name__ == "__main__":
     print('Done! Plotting now.')
     ###### PLOT DELIVERABLES #########################################################################################
     # 1. PLOT FUSED LOCATION DATA
-    utils.export_to_kml(x_est[:,0], x_est[:,1], ground_truth[:,1], ground_truth[:,2])
+    # utils.export_to_kml(x_est[:,0], x_est[:,1], ground_truth[:,1], ground_truth[:,2])
     utils.plot_state_comparison(x_est[:,0], x_est[:,1], ground_truth[:,1], ground_truth[:,2])
+    
+    
+    
     # TODO 2. PLOT MSE FROM GROUND TRUTH (EUCLIDEAN DISTANCE)
     # TODO 3. PLOT GROUND TRUTH FOR COMPARISON

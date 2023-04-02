@@ -31,11 +31,16 @@ def read_gps(dataset_date):
         utils.calculate_hz("GPS", t) # 6 Hz
     
     x,y = utils.gps_to_local_coord(lat, lng) #North,East
+
+    x = x + 76.50582406697139 # Tuned offset to adjust with ground truth initial position
+    y = y + 108.31373031919006 # Tuned offset to adjust with ground truth initial position
+
     gps_data = np.array([])
     gps_data = np.vstack((t, x, y)).T
+
     # Filter data to campus map area
-    gps_data = np.delete(gps_data, np.where((gps_data[:,1] < -450 ) | (gps_data[:,1] > 100 ))[0], axis=0) # x
-    gps_data = np.delete(gps_data, np.where((gps_data[:,2] < -900 ) | (gps_data[:,2] > 50 ))[0], axis=0) # y
+    # gps_data = np.delete(gps_data, np.where((gps_data[:,1] < -450 ) | (gps_data[:,1] > 100 ))[0], axis=0) # x
+    # gps_data = np.delete(gps_data, np.where((gps_data[:,2] < -900 ) | (gps_data[:,2] > 50 ))[0], axis=0) # y
 
     # timestamp | x | y
     return gps_data
@@ -46,6 +51,7 @@ def plot_gps(filepath):
     t = gps[:,0]
     x = gps[:,1]
     y = gps[:,2]
+
 
     plt.figure()
     plt.scatter(y, x, s=1, linewidth=0) # plot flipped since North,East

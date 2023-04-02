@@ -23,14 +23,18 @@ def read_ground_truth(dataset_date):
     gt = np.loadtxt(filepath_gt, delimiter = ",")
     cov = np.loadtxt(filepath_cov, delimiter = ",")
     
-    t = cov[:20000, 0]
-
+    #t = cov[:20000, 0]
+    t = cov[:,0]
     interp = scipy.interpolate.interp1d(gt[:, 0], gt[:, 1:], kind='nearest', axis=0, fill_value="extrapolate")
     pose_gt = interp(t)
     # t = t-t[0] # Make timestamps relative
     t = t/1000000
     x = pose_gt[:, 0] # North
     y = pose_gt[:, 1] # East
+
+    print("Ground truth x0: ", x[0])
+    print("Ground truth y0: ", y[0])
+
     yaw = pose_gt[:, 5]
     utils.calculate_hz("Ground Truth", t) # 107 Hz
     
