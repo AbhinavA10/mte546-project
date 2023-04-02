@@ -86,8 +86,10 @@ def plot_state_comparison(x: list, y:list, x_gt: list, y_gt:list):
     - local frame ground truth coords (x_gt,y_gt) = (North, East) [meters]
     """
     plt.figure()
-    plt.scatter(y, x, s=1, c='b', linewidth=0, label='Estimated') # plot flipped since North,East
-    plt.scatter(y_gt, x_gt, c='r', s=1, linewidth=0, label='Ground Truth')
+    # plt.scatter(y, x, s=1, c='b', linewidth=0, label='Estimated') # plot flipped since North,East
+    # plt.scatter(y_gt, x_gt, c='r', s=1, linewidth=0, label='Ground Truth')
+    plt.plot(y, x, c='b', linewidth=1, label='Estimated') # plot flipped since North,East
+    plt.plot(y_gt, x_gt, c='r', linewidth=1, label='Ground Truth')
     plt.axis('equal')
     plt.legend()
     plt.title('Comparison')

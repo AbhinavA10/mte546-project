@@ -39,8 +39,8 @@ def read_gps(dataset_date):
     gps_data = np.vstack((t, x, y)).T
 
     # Filter data to campus map area
-    # gps_data = np.delete(gps_data, np.where((gps_data[:,1] < -450 ) | (gps_data[:,1] > 100 ))[0], axis=0) # x
-    # gps_data = np.delete(gps_data, np.where((gps_data[:,2] < -900 ) | (gps_data[:,2] > 50 ))[0], axis=0) # y
+    #gps_data = np.delete(gps_data, np.where((gps_data[:,1] < -450 ) | (gps_data[:,1] > 100 ))[0], axis=0) # x
+    #gps_data = np.delete(gps_data, np.where((gps_data[:,2] < -900 ) | (gps_data[:,2] > 50 ))[0], axis=0) # y
 
     # timestamp | x | y
     return gps_data

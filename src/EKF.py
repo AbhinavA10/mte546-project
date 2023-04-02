@@ -16,7 +16,7 @@ import read_gps
 import read_ground_truth 
 
 R_WHEEL = np.diag([1, 1])  # measurement noise covariance, Guess
-R_GPS = np.diag([0.3, 0.3])  # measurement noise covariance, Guess
+R_GPS = np.diag([0.1, 0.1])  # measurement noise covariance, Guess
 
 # wrap theta measurements to [-pi, pi].
 # Accepts an angle measurement in radians and returns an angle measurement in radians
@@ -140,11 +140,12 @@ def measurement_update_gps(x, y, P_pred, x_pred):
     H = measurement_jacobian_gps(x_pred)
 
     # Correct the predicted state.
-    z_hat = predict_z_hat_wheel(x_pred)
+    z_hat = predict_z_hat_gps(x_pred)
     z = np.array([x, y])
     # Compute the Kalman gain.
     K = np.matmul(np.matmul(P_pred, np.transpose(H)),
                   np.linalg.inv(np.matmul((np.matmul(H, P_pred)), np.transpose(H)) + R_GPS))
+    
     x_corrected = x_pred + np.matmul(K, (z - z_hat))
     x_corrected[4] = wraptopi(x_corrected[4])
 
@@ -179,17 +180,20 @@ if __name__ == "__main__":
     imu_data     = read_imu.read_imu(file_date[0]) # 47 Hz
     wheel_data   = read_wheels.read_wheels(file_date[0]) # 37 Hz
     #Truncate data to first 20000 datapoints, for testing
-    ground_truth = ground_truth[:20000,:]
-    gps_data     = gps_data[:20000,:]
-    imu_data     = imu_data[:20000,:]
-    wheel_data   = wheel_data[:20000,:]
+    ground_truth = ground_truth[:50000,:]
+    gps_data     = gps_data[:50000,:]
+    imu_data     = imu_data[:50000,:]
+    wheel_data   = wheel_data[:50000,:]
     # Using the original Unix Timestamp for timesyncing
 
     x_true   = ground_truth[:, 1] # North
     y_true   = ground_truth[:, 2] # East
     theta_true = ground_truth[:, 3] # Heading
 
-    N     = len(x_true)
+    # Generate list of timesteps, from 0 to last timestep in ground_truth
+    dt = 1/1 # 1/Hz = seconds
+    t = np.arange(ground_truth[0,0], ground_truth[-1,0], dt)
+    N     = len(t)
     x_est = np.zeros([N, 6]) 
     P_est = np.zeros([N, 6, 6])  # state covariance matrices
 
@@ -199,12 +203,10 @@ if __name__ == "__main__":
 
     ################################ 1. MAIN FILTER LOOP ##########################################################################
 
-    # Generate list of timesteps, from 0 to last timestep in ground_truth
-    dt = 1/10
-    t = np.arange(ground_truth[0,0], ground_truth[-1,0], dt)
     a_x           =   imu_data[:,1]
     a_y           =   imu_data[:,2]
     omega         =   imu_data[:,3]
+
     gps_x         =   gps_data[:,1]
     gps_y         =   gps_data[:,2]
     #v_robot      = wheel_data[:,1]
@@ -221,11 +223,9 @@ if __name__ == "__main__":
     prev_wheel_counter = -1
     prev_imu_counter   = -1
 
-    utils.plot_state_comparison(gps_x, gps_y, x_true, y_true)    
-
     # Start at 1 because we have initial prediction from ground truth.
     for k in range(1, len(t)):
-        # print(k)
+        print(k, "/", len(t))
 
         # PREDICTION - UPDATE OF THE ROBOT STATE USING MOTION MODEL AND INPUTS (IMU)
         ax_global = a_x[imu_counter]*sp.cos(-x_est[k-1, 4]) - a_y[imu_counter]*sp.sin(-x_est[k-1, 4])
@@ -270,10 +270,8 @@ if __name__ == "__main__":
     print('Done! Plotting now.')
     ###### PLOT DELIVERABLES #########################################################################################
     # 1. PLOT FUSED LOCATION DATA
-    # utils.export_to_kml(x_est[:,0], x_est[:,1], ground_truth[:,1], ground_truth[:,2])
+    utils.export_to_kml(x_est[:,0], x_est[:,1], ground_truth[:,1], ground_truth[:,2])
     utils.plot_state_comparison(x_est[:,0], x_est[:,1], ground_truth[:,1], ground_truth[:,2])
-    
-    
     
     # TODO 2. PLOT MSE FROM GROUND TRUTH (EUCLIDEAN DISTANCE)
     # TODO 3. PLOT GROUND TRUTH FOR COMPARISON
