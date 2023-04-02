@@ -263,6 +263,8 @@ if __name__ == "__main__":
             x_predicted, P_predicted = measurement_update_wheel(v_left_wheel[wheel_counter], v_right_wheel[wheel_counter], P_predicted, x_predicted)
             prev_wheel_counter = wheel_counter
         
+        #TODO: Ground Truth counter to keep track of corresponding truths at the same timestep
+        
         # Set final state predictions for this kth timestep.
         x_est[k] = x_predicted
         P_est[k] = P_predicted
@@ -270,8 +272,8 @@ if __name__ == "__main__":
     print('Done! Plotting now.')
     ###### PLOT DELIVERABLES #########################################################################################
     # 1. PLOT FUSED LOCATION DATA
-    utils.export_to_kml(x_est[:,0], x_est[:,1], ground_truth[:,1], ground_truth[:,2])
-    utils.plot_state_comparison(x_est[:,0], x_est[:,1], ground_truth[:,1], ground_truth[:,2])
+    utils.export_to_kml(x_est[:,0], x_est[:,1], x_true, y_true)
+    utils.plot_state_comparison(x_est[:,0], x_est[:,1], x_true, y_true)
     
     # TODO 2. PLOT MSE FROM GROUND TRUTH (EUCLIDEAN DISTANCE)
     # TODO 3. PLOT GROUND TRUTH FOR COMPARISON

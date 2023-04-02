@@ -47,7 +47,7 @@
       <Placemark>
         <name>State Estimate</name>
         <description>Estimated Position</description>
-        <styleUrl>#blueLineGreenPoly</styleUrl>
+        <styleUrl>#thickBlackLine</styleUrl>
         <LineString>
           <tessellate>1</tessellate>
           <altitudeMode>relativeToGround</altitudeMode> 
