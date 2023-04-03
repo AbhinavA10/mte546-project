@@ -158,8 +158,6 @@ def plot_states(x_est:np.ndarray, P_est:np.ndarray, x_true_arr:np.ndarray, y_tru
     plt.subplot(3, 1, 3)
     plt.plot(t,theta, label="theta")
     plt.plot(t,theta_true_arr, label="theta_true")
-    plt.plot(t,theta+np.sqrt(P_theta),'r--', label="_Uncertainity Bound")
-    plt.plot(t,theta-np.sqrt(P_theta),'r--', label="_Uncertainity Bound")
     plt.legend()
     plt.xlabel('Time [s]')
     plt.ylabel('Theta [rad]')

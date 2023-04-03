@@ -14,10 +14,11 @@ import read_imu
 import read_wheels
 import read_gps
 import read_ground_truth 
+import read_FOG
 
 USE_RTK = False
 KALMAN_FILTER_RATE = 1
-TRUNCATION_END = 50000 # Ground Truth has 500000 data points, filter for testing. Set to -1 for all data
+TRUNCATION_END = -1 # Ground Truth has 500000 data points, filter for testing. Set to -1 for all data
 
 R_WHEEL = np.diag([1, 1])  # measurement noise covariance, Guess
 R_GPS   = np.diag([10, 10])  # measurement noise covariance, Guess
@@ -187,11 +188,15 @@ if __name__ == "__main__":
     ground_truth = read_ground_truth.read_ground_truth(FILE_DATES[-1]) # 107 Hz
     gps_data     = read_gps.read_gps(FILE_DATES[-1], USE_RTK) # 2.5 or 6 Hz
     imu_data     = read_imu.read_imu(FILE_DATES[-1]) # 47 Hz
+    euler_data     = read_imu.read_euler(FILE_DATES[-1]) # 47 Hz
+    fog_data     = read_FOG.read_FOG(FILE_DATES[-1]) # 97 Hz
     wheel_data   = read_wheels.read_wheels(FILE_DATES[-1]) # 37 Hz
     #Truncate data to first few datapoints, for testing
     ground_truth = ground_truth[:TRUNCATION_END,:]
     gps_data     = gps_data[:TRUNCATION_END,:]
     imu_data     = imu_data[:TRUNCATION_END,:]
+    fog_data     = imu_data[:TRUNCATION_END,:]
+    euler_data   = euler_data[:TRUNCATION_END,:]
     wheel_data   = wheel_data[:TRUNCATION_END,:]
     # Using the original Unix Timestamp for timesyncing
 
@@ -223,6 +228,8 @@ if __name__ == "__main__":
     a_x           =   imu_data[:,1]
     a_y           =   imu_data[:,2]
     omega         =   imu_data[:,3]
+    omega_fog     = fog_data[:,1]
+    theta_imu    = euler_data[:,1]
 
     gps_x         =   gps_data[:,1]
     gps_y         =   gps_data[:,2]
@@ -232,14 +239,29 @@ if __name__ == "__main__":
     gps_times     =   gps_data[:,0]
     wheel_times   = wheel_data[:,0]
     imu_times     =   imu_data[:,0]
+    fog_times     =   fog_data[:,0]
+    euler_times   =   euler_data[:,0]
     gps_counter   = 0
     wheel_counter = 0
     imu_counter   = 0
+    fog_counter   = 0
+    euler_counter   = 0
     ground_truth_counter = 0
 
     prev_gps_counter   = -1
     prev_wheel_counter = -1
     prev_imu_counter   = -1
+    prev_fog_counter   = -1
+    prev_euler_counter   = -1
+
+    # Plot IMU estimated Theta vs Ground Truth  
+    # plt.figure()
+    # plt.plot(euler_times,theta_imu, label="IMU")
+    # plt.plot(true_times,theta_true, label="Ground Truth")
+    # plt.legend()
+    # plt.xlabel('Time [s]')
+    # plt.ylabel('Theta [rad]')
+    # plt.show()
 
     # Start at 1 because we have initial prediction from ground truth.
     for k in range(1, len(t)):
@@ -264,6 +286,8 @@ if __name__ == "__main__":
         P_predicted = np.matmul(np.matmul(F, P_est[k-1]), np.transpose(F)) + Q
 
         imu_counter = find_nearest_index(imu_times, t[k]) # Grab closest IMU data
+        fog_counter = find_nearest_index(fog_times, t[k]) # Grab closest FOG data
+        euler_counter = find_nearest_index(euler_times, t[k]) # Grab closest Theta correction data
         gps_counter = find_nearest_index(gps_times, t[k]) # Grab closest GPS data
         wheel_counter = find_nearest_index(wheel_times, t[k]) # Grab closest Wheel Velocity data
         ground_truth_counter = find_nearest_index(true_times, t[k]) # Grab closest Ground Truth data

@@ -3,15 +3,32 @@
 # Need to add requirements:
 
 import numpy as np
-import pandas as pd
+import utils
 import matplotlib.pyplot as plt
 
 # Accept a filepath to the CSV of interest and return Numpy array with data
-def read_FOG(filepath):
-    data = pd.read_csv("dataset/2013-04-05/kvh.csv", header=None)
-    data = data - [data.iloc[0,0], 0]
-    data[2] = data[1].rolling(1000).mean()
-    return(data.to_numpy())
+# def read_FOG(filepath):
+#     data = pd.read_csv("dataset/2013-04-05/kvh.csv", header=None)
+#     data = data - [data.iloc[0,0], 0]
+#     data[2] = data[1].rolling(1000).mean()
+#     return(data.to_numpy())
+
+def read_FOG(dataset_date):
+    filepath = f"dataset/{dataset_date}/kvh.csv"
+    fog = np.loadtxt(filepath, delimiter = ",")
+    rot_h_OG   = fog[:, 1]
+    t          = fog[:, 0]
+    
+    # Relative timestamps
+    # t = t-t[0]
+    t = t/1000000
+    utils.calculate_hz("FOG", t) # 47 Hz
+
+    # have the following format:
+    # timestamp | ax_robot | ay_robot | omega
+    fog_data = np.array([])
+    fog_data = np.vstack((t, rot_h_OG)).T
+    return fog_data
 
 # Accepta a filepath to the CSV of interest and plot the FOG data
 def plot_FOG(filepath):
@@ -32,4 +49,5 @@ def plot_FOG(filepath):
     plt.show()
     
 
-plot_FOG("dataset/2013-04-05_sen/kvh.csv")
+if __name__ == "__main__":
+    plot_FOG("2013-04-05")
