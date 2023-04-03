@@ -17,14 +17,14 @@ import read_ground_truth
 import read_FOG
 
 USE_RTK = False
-KALMAN_FILTER_RATE = 1
+KALMAN_FILTER_RATE = 20
 TRUNCATION_END = -1 # Ground Truth has 500000 data points, filter for testing. Set to -1 for all data
 
 R_WHEEL = np.diag([1, 1])  # measurement noise covariance, Guess
 R_GPS   = np.diag([10, 10])  # measurement noise covariance, Guess
 if USE_RTK:
     R_GPS = np.diag([0.1, 0.1])  # measurement noise covariance, Guess
-Q = np.diag([0.1, 0.1, 1, 1, 0.1, 1])  # input noise covariance, Guess
+Q = np.diag([0.1, 0.1, 1, 1, 0.01, 0.01])  # input noise covariance, Guess
 
 FILE_DATES = ["2012-01-08", "2012-01-15", "2012-01-22", "2012-02-02", "2012-02-04", "2012-02-05", "2012-02-12", 
               "2012-02-18", "2012-02-19", "2012-03-17", "2012-03-25", "2012-03-31", "2012-04-29", "2012-05-11", 
@@ -275,13 +275,13 @@ if __name__ == "__main__":
                                                 x_est[k-1,3] + 0.5*ay_global*dt,
                                                 ax_global,
                                                 ay_global,
-                                                omega[imu_counter],
+                                                omega_fog[fog_counter],
                                                 0])
         
-        x_predicted[4] = wraptopi(x_predicted[4])
-        x_predicted[5] = omega[imu_counter]
+        x_predicted[4] = wraptopi(theta_imu[euler_counter])
+        x_predicted[5] = omega_fog[fog_counter]
         # Compute the Jacobian of f w.r.t. the last state.
-        F = motion_jacobian(a_x[imu_counter], a_y[imu_counter], omega[imu_counter], dt, x_est[k-1])
+        F = motion_jacobian(a_x[imu_counter], a_y[imu_counter], omega_fog[fog_counter], dt, x_est[k-1])
         # Propagate uncertainty by updating the covariance
         P_predicted = np.matmul(np.matmul(F, P_est[k-1]), np.transpose(F)) + Q
 
