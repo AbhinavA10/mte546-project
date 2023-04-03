@@ -13,7 +13,7 @@ def read_imu(dataset_date):
     # Relative timestamps
     # t = t-t[0]
     t = t/1000000
-    utils.calculate_hz("IMU", t) # 47 Hz
+    utils.calculate_hz("IMU Accel and Omega", t) # 47 Hz
 
     # have the following format:
     # timestamp | ax_robot | ay_robot | omega
@@ -31,7 +31,7 @@ def read_euler(dataset_date):
     # Relative timestamps
     # t = t-t[0]
     t = t/1000000
-    utils.calculate_hz("IMU", t) # 47 Hz
+    utils.calculate_hz("IMU Euler", t) # 47 Hz
 
     # have the following format:
     # timestamp | ax_robot | ay_robot | omega

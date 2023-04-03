@@ -48,7 +48,7 @@ ax_imu, ay_imu, omega_imu, dt_sym = sp.symbols(
 
 ##### Symbolic Jacobian for Motion Model #####
 ax_global = ax_imu*sp.cos(-theta_k) - ay_imu*sp.sin(-theta_k)
-ay_global = ax_imu*sp.sin(-theta_k) - ay_imu*sp.cos(-theta_k)
+ay_global = ax_imu*sp.sin(-theta_k) + ay_imu*sp.cos(-theta_k)
 f1 = x_k + x_dot_k*dt_sym + 0.5*ax_global*dt_sym**2
 f2 = y_k + y_dot_k*dt_sym + 0.5*ay_global*dt_sym**2
 f3 = x_dot_k + ax_global*dt_sym
@@ -60,8 +60,8 @@ F_JACOB = sp.Matrix([f1, f2, f3, f4, f5, f6]).jacobian([x_k, y_k, x_dot_k, y_dot
 ### Symbolic Jacobian for Wheel Measurement
 ROBOT_WIDTH_WHEEL_BASE = 0.562356 # T [m], From SolidWorks Model
 v_c     = sp.sqrt(x_dot_k**2 + y_dot_k**2)
-v_left  = v_c - (ROBOT_WIDTH_WHEEL_BASE*omega_k)/2
-v_right = v_c + (ROBOT_WIDTH_WHEEL_BASE*omega_k)/2
+v_left  = v_c + (ROBOT_WIDTH_WHEEL_BASE*omega_k)/2
+v_right = v_c - (ROBOT_WIDTH_WHEEL_BASE*omega_k)/2
 h1 = v_left
 h2 = v_right
 
@@ -86,8 +86,8 @@ def predict_z_hat_wheel(state_vector):
     """Predict Z_hat for Wheel Velocity Measurements"""
     vel_x, vel_y, omega = state_vector[2], state_vector[3], state_vector[5]
     v_c     = math.sqrt(vel_x**2 + vel_y**2)
-    v_left  = v_c - (ROBOT_WIDTH_WHEEL_BASE*omega)/2
-    v_right = v_c + (ROBOT_WIDTH_WHEEL_BASE*omega)/2
+    v_left  = v_c + (ROBOT_WIDTH_WHEEL_BASE*omega)/2
+    v_right = v_c - (ROBOT_WIDTH_WHEEL_BASE*omega)/2
     z_wheel_vel = np.array([v_left, v_right])
     return z_wheel_vel
 
@@ -269,7 +269,7 @@ if __name__ == "__main__":
 
         # PREDICTION - UPDATE OF THE ROBOT STATE USING MOTION MODEL AND INPUTS (IMU)
         ax_global = a_x[imu_counter]*sp.cos(-x_est[k-1, 4]) - a_y[imu_counter]*sp.sin(-x_est[k-1, 4])
-        ay_global = a_x[imu_counter]*sp.sin(-x_est[k-1, 4]) - a_y[imu_counter]*sp.cos(-x_est[k-1, 4])
+        ay_global = a_x[imu_counter]*sp.sin(-x_est[k-1, 4]) + a_y[imu_counter]*sp.cos(-x_est[k-1, 4])
 
         x_predicted = x_est[k-1] + dt*np.array([x_est[k-1,2] + 0.5*ax_global*dt,
                                                 x_est[k-1,3] + 0.5*ay_global*dt,
