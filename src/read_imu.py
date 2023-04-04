@@ -1,5 +1,6 @@
 import numpy as np
 import utils
+import pandas as pd
 
 # Read IMU using dataset date and return NP array providing
 def read_imu(dataset_date):
@@ -10,6 +11,20 @@ def read_imu(dataset_date):
     rot_h_OG   = ms25[:, 9]
     t          = ms25[:, 0]
     
+    print("a_x Bias", np.average(accel_x_OG[:100]))
+    print("a_y Bias", np.average(accel_y_OG[:100]))
+    # Remove bias
+    accel_x_OG -= np.average(accel_x_OG[:100])
+    accel_y_OG -= np.average(accel_y_OG[:100])
+    
+    # apply rolling average to accelerations
+    accel_x_df = pd.DataFrame(accel_x_OG)
+    accel_x_rolling = accel_x_df.rolling(1000, min_periods=1).mean()
+    accel_x_rolling = accel_x_rolling.to_numpy().flatten()
+    accel_y_df = pd.DataFrame(accel_y_OG)
+    accel_y_rolling = accel_y_df.rolling(1000, min_periods=1).mean()
+    accel_y_rolling = accel_y_rolling.to_numpy().flatten()
+    
     # Relative timestamps
     # t = t-t[0]
     t = t/1000000
@@ -18,7 +33,7 @@ def read_imu(dataset_date):
     # have the following format:
     # timestamp | ax_robot | ay_robot | omega
     imu_data = np.array([])
-    imu_data = np.vstack((t, accel_x_OG, accel_y_OG, rot_h_OG)).T
+    imu_data = np.vstack((t, accel_x_rolling, accel_y_rolling, rot_h_OG)).T
     return imu_data
 
 def read_euler(dataset_date):
