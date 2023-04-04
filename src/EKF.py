@@ -18,7 +18,7 @@ import read_FOG
 
 USE_RTK = False
 KALMAN_FILTER_RATE = 1
-TRUNCATION_END = 20000 # Ground Truth has 500000 data points, filter for testing. Set to -1 for all data
+TRUNCATION_END = -1 # Ground Truth has 500000 data points, filter for testing. Set to -1 for all data
 USE_WHEEL_AS_INPUT = True # False = Use IMU acceleration as Input for Motion Model. True = Use Wheel Velocity and IMU Theta as Input for Motion Model
 USE_GPS_FOR_CORRECTION = True # Correct prediction with GPS measurements
 USE_WHEEL_FOR_CORRECTION = True # Correct Prediction with Wheel velocity measurement
