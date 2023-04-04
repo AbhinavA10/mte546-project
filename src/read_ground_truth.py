@@ -12,7 +12,7 @@ import scipy.interpolate
 import utils
 
 # Accept a filepath to the CSV of interest and return Numpy array with data
-def read_ground_truth(dataset_date):
+def read_ground_truth(dataset_date, truncation=-1):
     """Read Ground Truth Data
     Parameters: dataset date
     Returns: np.ndarray([timestamp, x, y, yaw])
@@ -22,6 +22,8 @@ def read_ground_truth(dataset_date):
     
     gt = np.loadtxt(filepath_gt, delimiter = ",")
     cov = np.loadtxt(filepath_cov, delimiter = ",")
+    gt      = gt[:truncation,:]
+    cov     = cov[:truncation,:]
     
     t = cov[:, 0]
     #t = cov[:,0]
@@ -31,11 +33,11 @@ def read_ground_truth(dataset_date):
     t = t/1000000
     x = pose_gt[:, 0] # North
     y = pose_gt[:, 1] # East
-
-    print("Ground truth x0: ", x[0])
-    print("Ground truth y0: ", y[0])
-
     yaw = pose_gt[:, 5]
+
+    # print("Ground truth x0: ", x[0])
+    # print("Ground truth y0: ", y[0])
+
     utils.calculate_hz("Ground Truth", t) # 107 Hz
     
     ground_truth = np.array([])

@@ -17,8 +17,8 @@ import read_ground_truth
 import read_FOG
 
 USE_RTK = False
-KALMAN_FILTER_RATE = 20
-TRUNCATION_END = -1 # Ground Truth has 500000 data points, filter for testing. Set to -1 for all data
+KALMAN_FILTER_RATE = 1
+TRUNCATION_END = 20000 # Ground Truth has 500000 data points, filter for testing. Set to -1 for all data
 
 R_WHEEL = np.diag([1, 1])  # measurement noise covariance, Guess
 R_GPS   = np.diag([10, 10])  # measurement noise covariance, Guess
@@ -184,18 +184,17 @@ if __name__ == "__main__":
     # CURRENT STATE MODEL IS: X = [x, y, x_dot, y_dot, theta, omega]
     # CURRENT INPUT MODEL IS: U = [ax, ay, omega]
 
-
-    ground_truth = read_ground_truth.read_ground_truth(FILE_DATES[-1]) # 107 Hz
     gps_data     = read_gps.read_gps(FILE_DATES[-1], USE_RTK) # 2.5 or 6 Hz
     imu_data     = read_imu.read_imu(FILE_DATES[-1]) # 47 Hz
     euler_data     = read_imu.read_euler(FILE_DATES[-1]) # 47 Hz
     fog_data     = read_FOG.read_FOG(FILE_DATES[-1]) # 97 Hz
     wheel_data   = read_wheels.read_wheels(FILE_DATES[-1]) # 37 Hz
+    ground_truth = read_ground_truth.read_ground_truth(FILE_DATES[-1], truncation=TRUNCATION_END) # 107 Hz
     #Truncate data to first few datapoints, for testing
     ground_truth = ground_truth[:TRUNCATION_END,:]
     gps_data     = gps_data[:TRUNCATION_END,:]
     imu_data     = imu_data[:TRUNCATION_END,:]
-    fog_data     = imu_data[:TRUNCATION_END,:]
+    fog_data     = fog_data[:TRUNCATION_END,:]
     euler_data   = euler_data[:TRUNCATION_END,:]
     wheel_data   = wheel_data[:TRUNCATION_END,:]
     # Using the original Unix Timestamp for timesyncing
@@ -233,6 +232,7 @@ if __name__ == "__main__":
 
     gps_x         =   gps_data[:,1]
     gps_y         =   gps_data[:,2]
+    robot_vel     = wheel_data[:,1]
     v_left_wheel  = wheel_data[:,2]
     v_right_wheel = wheel_data[:,3]
 
@@ -268,20 +268,25 @@ if __name__ == "__main__":
         print(k, "/", len(t))
 
         # PREDICTION - UPDATE OF THE ROBOT STATE USING MOTION MODEL AND INPUTS (IMU)
-        ax_global = a_x[imu_counter]*sp.cos(-x_est[k-1, 4]) - a_y[imu_counter]*sp.sin(-x_est[k-1, 4])
-        ay_global = a_x[imu_counter]*sp.sin(-x_est[k-1, 4]) + a_y[imu_counter]*sp.cos(-x_est[k-1, 4])
 
-        x_predicted = x_est[k-1] + dt*np.array([x_est[k-1,2] + 0.5*ax_global*dt,
-                                                x_est[k-1,3] + 0.5*ay_global*dt,
-                                                ax_global,
-                                                ay_global,
-                                                omega_fog[fog_counter],
-                                                0])
-        
+        x_predicted = x_est[k-1,:]
         x_predicted[4] = wraptopi(theta_imu[euler_counter])
-        x_predicted[5] = omega_fog[fog_counter]
+        x_predicted[5] = omega[imu_counter]
+
+        # IMU BASED MODEL
+        ax_global = a_x[imu_counter]*np.cos(-x_est[k-1, 4]) - a_y[imu_counter]*np.sin(-x_est[k-1, 4])
+        ay_global = a_x[imu_counter]*np.sin(-x_est[k-1, 4]) + a_y[imu_counter]*np.cos(-x_est[k-1, 4])
+        x_predicted[0] += x_est[k-1,2]*dt + 0.5*ax_global*dt*dt
+        x_predicted[1] += x_est[k-1,3]*dt + 0.5*ay_global*dt*dt
+        x_predicted[2] += ax_global*dt
+        x_predicted[3] += ay_global*dt
+        
+        # WHEEL VELOCITY BASED MODEL
+        # x_predicted[0] += robot_vel[wheel_counter]*np.cos(theta_imu[euler_counter])*dt 
+        # x_predicted[1] += robot_vel[wheel_counter]*np.sin(theta_imu[euler_counter])*dt
+
         # Compute the Jacobian of f w.r.t. the last state.
-        F = motion_jacobian(a_x[imu_counter], a_y[imu_counter], omega_fog[fog_counter], dt, x_est[k-1])
+        F = motion_jacobian(a_x[imu_counter], a_y[imu_counter], omega[imu_counter], dt, x_est[k-1])
         # Propagate uncertainty by updating the covariance
         P_predicted = np.matmul(np.matmul(F, P_est[k-1]), np.transpose(F)) + Q
 
@@ -319,5 +324,6 @@ if __name__ == "__main__":
     print('Done! Plotting now.')
     ###### PLOT DELIVERABLES #########################################################################################
     utils.export_to_kml(x_est[:,0], x_est[:,1], x_true_arr, y_true_arr, "Estimated", "Ground Truth")
+    # utils.export_to_kml(x_est[:,0], x_est[:,1], x_true_arr, y_true_arr, "Estimated", "Ground Truth")
     utils.plot_position_comparison_2D(x_est[:,0], x_est[:,1], x_true_arr, y_true_arr, "Estimated", "Ground Truth")
-    utils.plot_states(x_est, P_est, x_true_arr, y_true_arr, theta_true_arr, t)
+    # utils.plot_states(x_est, P_est, x_true_arr, y_true_arr, theta_true_arr, t)
