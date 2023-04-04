@@ -94,7 +94,7 @@ def plot_position_comparison_2D(x1: list, y1:list, x2: list, y2:list, label1:str
     """
     plt.figure()
     plt.plot(y1, x1, c='b', linewidth=1, label=label1) # plot flipped since North,East
-    plt.plot(y2, x2, c='r', linewidth=1, label=label2)
+    plt.scatter(y2, x2, c='r', s=1, linewidth=1, label=label2)
     plt.axis('equal')
     plt.legend()
     plt.title('Comparison')

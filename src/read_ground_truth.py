@@ -54,11 +54,11 @@ def plot_ground_truth(filepath):
     y = ground_truth[:, 2] # East
     yaw = ground_truth[:, 3]
 
-    # utils.export_to_kml(None,None,x,y)
+    utils.export_to_kml(None,None,x,y)
 
     plt.figure(figsize=(15, 10), dpi=300)
-    # plt.scatter(y, x, s=1, linewidth=0)
-    plt.scatter(y, x, c=t, s=1, linewidth=0)
+    # plt.scatter(y, x, s=1, linewidth=0) # Plot flat 2D
+    plt.scatter(y, x, c=t, s=1, linewidth=0) # Plot color over time
     plt.colorbar(label='Time')
     plt.axis('equal')
     plt.title('Ground Truth Position')

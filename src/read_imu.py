@@ -10,19 +10,19 @@ def read_imu(dataset_date):
     accel_y_OG = ms25[:, 5]
     rot_h_OG   = ms25[:, 9]
     t          = ms25[:, 0]
+
+    # Attempt to Remove bias by estimating it using the first 2 seconds of stationary data
+    # print("a_x Bias", np.average(accel_x_OG[:100]))
+    # print("a_y Bias", np.average(accel_y_OG[:100]))
+    # accel_x_OG -= np.average(accel_x_OG[:100])
+    # accel_y_OG -= np.average(accel_y_OG[:100])
     
-    print("a_x Bias", np.average(accel_x_OG[:100]))
-    print("a_y Bias", np.average(accel_y_OG[:100]))
-    # Remove bias
-    accel_x_OG -= np.average(accel_x_OG[:100])
-    accel_y_OG -= np.average(accel_y_OG[:100])
-    
-    # apply rolling average to accelerations
+    # apply rolling average to accelerations, to smooth noise
     accel_x_df = pd.DataFrame(accel_x_OG)
-    accel_x_rolling = accel_x_df.rolling(1000, min_periods=1).mean()
+    accel_x_rolling = accel_x_df.rolling(50, min_periods=1).mean()
     accel_x_rolling = accel_x_rolling.to_numpy().flatten()
     accel_y_df = pd.DataFrame(accel_y_OG)
-    accel_y_rolling = accel_y_df.rolling(1000, min_periods=1).mean()
+    accel_y_rolling = accel_y_df.rolling(50, min_periods=1).mean()
     accel_y_rolling = accel_y_rolling.to_numpy().flatten()
     
     # Relative timestamps
