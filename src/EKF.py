@@ -12,7 +12,7 @@ import read_FOG
 
 USE_RTK = False # Whether or not to use GPS RTK
 TRUNCATION_END = -1 # Ground Truth has 500000 data points, filter for testing. Set to -1 for all data
-USE_WHEEL_AS_INPUT = False # False = Use IMU acceleration as Input for Motion Model. True = Use Wheel Velocity and IMU Theta as Input for Motion Model
+USE_WHEEL_AS_INPUT = True # False = Use IMU acceleration as Input for Motion Model. True = Use Wheel Velocity and IMU Theta as Input for Motion Model
 USE_GPS_FOR_CORRECTION = True # Correct prediction with GPS measurements
 USE_WHEEL_FOR_CORRECTION = True # Correct Prediction with Wheel velocity measurement
 USE_GPS_AS_INPUT = False # True = override state prediction with GPS measurement, for GPS error calculation
@@ -355,6 +355,7 @@ if __name__ == "__main__":
             x_predicted = x_est[k-1,:]
             x_predicted[0] = gps_x[gps_counter]
             x_predicted[1] = gps_y[gps_counter]
+            P_predicted = P_est[k-1,:]
         elif USE_WHEEL_AS_INPUT:
             # WHEEL VELOCITY BASED MODEL
             x_predicted, F = motion_update_wheel_input(v_left_wheel[wheel_counter], v_right_wheel[wheel_counter], theta_imu[euler_counter], omega[imu_counter], dt, x_est[k-1])
@@ -400,4 +401,4 @@ if __name__ == "__main__":
     ###### PLOT DELIVERABLES #########################################################################################
     utils.export_to_kml(x_est[:,0], x_est[:,1], x_true_arr, y_true_arr, "Estimated", "Ground Truth")
     utils.plot_position_comparison_2D(x_est[:,0], x_est[:,1], x_true_arr, y_true_arr, "Estimated", "Ground Truth")
-    # utils.plot_states(x_est, P_est, x_true_arr, y_true_arr, theta_true_arr, t)
+    utils.plot_states(x_est, P_est, x_true_arr, y_true_arr, theta_true_arr, t)

@@ -3,6 +3,7 @@
 import numpy as np
 from lxml import etree
 import matplotlib.pyplot as plt
+import pandas as pd
 
 def _compute_gps_conversion_params():
     # Compute radii of Earth at origin of linearization
@@ -119,7 +120,16 @@ def plot_position_comparison_2D_scatter(x1: list, y1:list, x2: list, y2:list, la
     plt.ylabel('North [m]')
     plt.show(),
 
-def plot_states(x_est:np.ndarray, P_est:np.ndarray, x_true_arr:np.ndarray, y_true_arr:np.ndarray, theta_true_arr:np.ndarray, t:np.ndarray):
+def plot_states(x_est:np.ndarray, P_est:np.ndarray, x_true_arr:np.ndarray, y_true_arr:np.ndarray, theta_true_arr:np.ndarray, t:np.ndarray, save_results=True):
+    if save_results:
+        # Save to files
+        with open('output.npy', 'wb') as f:
+            np.save(f, np.asarray(x_est))
+            np.save(f, np.asarray(P_est))
+            np.save(f, np.asarray(x_true_arr))
+            np.save(f, np.asarray(y_true_arr))
+            np.save(f, np.asarray(theta_true_arr))
+            np.save(f, np.asarray(t))
 
     # x_est = x | y | xdot | ydot | theta | omega
     x       = x_est[:,0]
@@ -134,8 +144,6 @@ def plot_states(x_est:np.ndarray, P_est:np.ndarray, x_true_arr:np.ndarray, y_tru
     P_y     = P[:,1]
     P_xdot  = P[:,2]
     P_ydot  = P[:,3]
-    P_theta = P[:,4]
-    P_omega = P[:,5]
     
     # x,y,theta over time vs Ground Truth, with uncertainties
     plt.figure()
@@ -180,8 +188,6 @@ def plot_states(x_est:np.ndarray, P_est:np.ndarray, x_true_arr:np.ndarray, y_tru
     plt.ylabel('Y Velocity [m/s]')
     plt.subplot(3, 1, 3)
     plt.plot(t,omega, label="omega")
-    plt.plot(t,omega+np.sqrt(P_omega),'r--', label="_Uncertainity Bound")
-    plt.plot(t,omega-np.sqrt(P_omega),'r--', label="_Uncertainity Bound")
     plt.legend()
     plt.xlabel('Time [s]')
     plt.ylabel('Omega [rad/s]')
@@ -202,3 +208,19 @@ def plot_states(x_est:np.ndarray, P_est:np.ndarray, x_true_arr:np.ndarray, y_tru
     plt.ylabel('Error in Theta [rad]')
     
     plt.show()
+
+def load_results():
+    """Load EKF results from exported numpy file, for plotting"""
+    
+    with open('output.npy', 'rb') as f:
+        x_est           = np.load(f)
+        P_est           = np.load(f)
+        x_true_arr      = np.load(f)
+        y_true_arr      = np.load(f)
+        theta_true_arr  = np.load(f)
+        t               = np.load(f)
+            
+    plot_states(x_est, P_est, x_true_arr, y_true_arr, theta_true_arr, t, save_results=False)
+
+if __name__=="__main__":
+    load_results()
