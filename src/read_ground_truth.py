@@ -12,7 +12,7 @@ import scipy.interpolate
 import utils
 
 # Accept a filepath to the CSV of interest and return Numpy array with data
-def read_ground_truth(dataset_date):
+def read_ground_truth(dataset_date, truncation=-1):
     """Read Ground Truth Data
     Parameters: dataset date
     Returns: np.ndarray([timestamp, x, y, yaw])
@@ -22,6 +22,8 @@ def read_ground_truth(dataset_date):
     
     gt = np.loadtxt(filepath_gt, delimiter = ",")
     cov = np.loadtxt(filepath_cov, delimiter = ",")
+    gt      = gt[:truncation,:]
+    cov     = cov[:truncation,:]
     
     t = cov[:, 0]
     #t = cov[:,0]
@@ -31,11 +33,11 @@ def read_ground_truth(dataset_date):
     t = t/1000000
     x = pose_gt[:, 0] # North
     y = pose_gt[:, 1] # East
-
-    print("Ground truth x0: ", x[0])
-    print("Ground truth y0: ", y[0])
-
     yaw = pose_gt[:, 5]
+
+    # print("Ground truth x0: ", x[0])
+    # print("Ground truth y0: ", y[0])
+
     utils.calculate_hz("Ground Truth", t) # 107 Hz
     
     ground_truth = np.array([])
@@ -54,19 +56,29 @@ def plot_ground_truth(filepath):
 
     utils.export_to_kml(None,None,x,y)
 
-    plt.figure()
-    plt.scatter(y, x, s=1, linewidth=0)
+    plt.figure(figsize=(15, 10), dpi=300)
+    # plt.scatter(y, x, s=1, linewidth=0) # Plot flat 2D
+    plt.scatter(y, x, c=t, s=1, linewidth=0) # Plot color over time
+    plt.colorbar(label='Time')
     plt.axis('equal')
     plt.title('Ground Truth Position')
     plt.xlabel('East [m]')
     plt.ylabel('North [m]')
+    # fig = plt.gcf()
+    # fig.savefig(f"{filepath}_Ground_Truth_Over_Time.png", dpi=300)
     
-    plt.figure()
-    plt.plot(t, yaw)
-    plt.title('Ground Truth Heading')
-    plt.xlabel('Time [s]')
-    plt.ylabel('Angle [rad]')
+    # plt.figure()
+    # plt.plot(t, yaw)
+    # plt.title('Ground Truth Heading')
+    # plt.xlabel('Time [s]')
+    # plt.ylabel('Angle [rad]')
     plt.show()
 
 if __name__ == "__main__":
-    plot_ground_truth("2013-04-05")
+    
+    FILE_DATES = ["2012-01-08", "2012-01-15", "2012-01-22", "2012-02-02", "2012-02-04", "2012-02-05", "2012-02-12", 
+              "2012-02-18", "2012-02-19", "2012-03-17", "2012-03-25", "2012-03-31", "2012-04-29", "2012-05-11", 
+              "2012-05-26", "2012-06-15", "2012-08-04", "2012-08-20", "2012-09-28", "2012-10-28", "2012-11-04", 
+              "2012-11-16", "2012-11-17", "2012-12-01", "2013-01-10", "2013-02-23", "2013-04-05"]
+    for file in FILE_DATES:
+        plot_ground_truth(file)

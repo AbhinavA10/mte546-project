@@ -5,12 +5,11 @@ import numpy as np
 import pandas as pd
 from scipy.stats import norm
 
-file_name = 'ms25.csv'
-#file_name_euler = '../Data/Sensor/2012-01-08/ms25_euler.csv'
+file_date = '2012-01-08'
 
-def read_process_ms25(file_name):
-
-    ms25 = np.loadtxt(file_name, delimiter = ",")
+def read_process_ms25(dataset_date):
+    filepath = f"dataset/{dataset_date}/ms25.csv"
+    ms25 = np.loadtxt(filepath, delimiter = ",")
     # time in us 
     t = ms25[:, 0]
     # adjust to start at time 0 (for now)
@@ -180,9 +179,9 @@ def read_process_ms25(file_name):
     
 
 
-def read_process_ms25_euler(file_name_euler):
-    
-    euler = np.loadtxt(file_name_euler, delimiter = ",")
+def read_process_ms25_euler(dataset_date):
+    filepath = f"dataset/{dataset_date}/ms25_euler.csv"
+    euler = np.loadtxt(filepath, delimiter = ",")
 
     t = euler[:, 0]
     # adjust to start at time 0 (for now)
@@ -248,5 +247,5 @@ def estimate_IMU_noise(original_data, smooth_data):
     
     
 if __name__ == '__main__':
-    read_process_ms25(file_name)
-    read_process_ms25_euler(file_name_euler)
+    read_process_ms25(file_date)
+    read_process_ms25_euler(file_date)

@@ -131,3 +131,5 @@ dmypy.json
 
 src/dataset/
 output.kml
+*.csv
+*.npy
