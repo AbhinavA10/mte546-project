@@ -1,27 +1,22 @@
-# !/usr/bin/python3
 
-# General imports
-import numpy as np
-import matplotlib.pyplot as plt
 import math
-
+import numpy as np
 import sympy as sp
-import sys
-import utils
 
-# Imports for reading ground truth
+import utils
 import read_imu
 import read_wheels
 import read_gps
 import read_ground_truth 
 import read_FOG
 
-USE_RTK = False
-KALMAN_FILTER_RATE = 1
+USE_RTK = False # Whether or not to use GPS RTK
 TRUNCATION_END = -1 # Ground Truth has 500000 data points, filter for testing. Set to -1 for all data
-USE_WHEEL_AS_INPUT = True # False = Use IMU acceleration as Input for Motion Model. True = Use Wheel Velocity and IMU Theta as Input for Motion Model
+USE_WHEEL_AS_INPUT = False # False = Use IMU acceleration as Input for Motion Model. True = Use Wheel Velocity and IMU Theta as Input for Motion Model
 USE_GPS_FOR_CORRECTION = True # Correct prediction with GPS measurements
 USE_WHEEL_FOR_CORRECTION = True # Correct Prediction with Wheel velocity measurement
+USE_GPS_AS_INPUT = False # True = override state prediction with GPS measurement, for GPS error calculation
+KALMAN_FILTER_RATE = 1 # Keep at 1Hz
 
 R_WHEEL = np.eye(2) * 0.00001 # measurement noise, Guess
 R_GPS   = np.eye(2) * np.power(10, 2)  # measurement noise, 10m^2
@@ -71,8 +66,8 @@ ax_imu, ay_imu, heading_imu, omega_imu = sp.symbols(
     'ax_imu, ay_imu, theta_imu, omega_imu', real=True)
 ax_global = ax_imu*sp.cos(-theta_k) - ay_imu*sp.sin(-theta_k)
 ay_global = ax_imu*sp.sin(-theta_k) + ay_imu*sp.cos(-theta_k)
-f1 = x_k + x_dot_k*dt_sym # Don't double integrate acceleration directly
-f2 = y_k + y_dot_k*dt_sym # Don't double integrate acceleration directly
+f1 = x_k + x_dot_k*dt_sym + 0.5*ax_global*dt_sym*dt_sym
+f2 = y_k + y_dot_k*dt_sym + 0.5*ay_global*dt_sym*dt_sym
 f3 = x_dot_k + ax_global*dt_sym
 f4 = y_dot_k + ay_global*dt_sym
 f5 = heading_imu # Theta estimate from IMU
@@ -81,7 +76,7 @@ f_imu_input=sp.Matrix([f1, f2, f3, f4, f5, f6])
 F_JACOB_IMU = f_imu_input.jacobian([x_k, y_k, x_dot_k, y_dot_k, theta_k, omega_k])
 
 def motion_update_imu_input(_ax, _ay, _theta, _omega, _dt, prev_state): # IMU inputs in robot frame
-    """Numerical Jacobian for Motion Model
+    """IMU for Motion Model
     Returns updated state and Jacobian wrt previous state
     """
     # Use motion model to predict state
@@ -127,7 +122,7 @@ f_wheel_input=sp.Matrix([f1, f2, f3, f4, f5, f6])
 F_JACOB_WHEEL = f_wheel_input.jacobian([x_k, y_k, x_dot_k, y_dot_k, theta_k, omega_k])
 
 def motion_update_wheel_input(_vel_left_wheel, _vel_right_wheel, _theta, _omega, _dt, prev_state): # IMU inputs in robot frame
-    """Numerical Jacobian for Motion Model
+    """Wheel-based Motion Model
     Returns updated state and Jacobian wrt previous state
     """
     # Use motion model to predict state
@@ -355,7 +350,12 @@ if __name__ == "__main__":
         print(k, "/", len(t))
 
         # PREDICTION - UPDATE OF THE ROBOT STATE USING MOTION MODEL AND INPUTS (IMU)
-        if USE_WHEEL_AS_INPUT:
+        if USE_GPS_AS_INPUT:
+            # GPS-ONLY Mode - override Prediction
+            x_predicted = x_est[k-1,:]
+            x_predicted[0] = gps_x[gps_counter]
+            x_predicted[1] = gps_y[gps_counter]
+        elif USE_WHEEL_AS_INPUT:
             # WHEEL VELOCITY BASED MODEL
             x_predicted, F = motion_update_wheel_input(v_left_wheel[wheel_counter], v_right_wheel[wheel_counter], theta_imu[euler_counter], omega[imu_counter], dt, x_est[k-1])
             P_predicted = np.matmul(np.matmul(F, P_est[k-1]), np.transpose(F)) + Q
@@ -373,14 +373,14 @@ if __name__ == "__main__":
         ground_truth_counter = find_nearest_index(true_times, t[k]) # Grab closest Ground Truth data
 
         # CORRECTION - Correct with measurement models if available
-        if USE_GPS_FOR_CORRECTION:
+        if USE_GPS_FOR_CORRECTION and not USE_GPS_AS_INPUT:
             if gps_counter != prev_gps_counter: # Use GPS data only if new
                 # print("Used GPS Data: ", gps_counter, prev_gps_counter)
                 x_predicted, P_predicted = measurement_update_gps(gps_x[gps_counter], gps_y[gps_counter], P_predicted, x_predicted)
                 prev_gps_counter = gps_counter
 
         # CORRECTION - Correct with measurement models if available
-        if USE_WHEEL_FOR_CORRECTION and not USE_WHEEL_AS_INPUT:
+        if USE_WHEEL_FOR_CORRECTION and not USE_WHEEL_AS_INPUT and not USE_GPS_AS_INPUT:
             if wheel_counter != prev_wheel_counter:
                 #print("Used Wheel data: ", wheel_counter, prev_wheel_counter)
                 x_predicted, P_predicted = measurement_update_wheel(v_left_wheel[wheel_counter], v_right_wheel[wheel_counter], P_predicted, x_predicted)
