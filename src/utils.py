@@ -82,7 +82,7 @@ def export_to_kml(x1: list, y1:list, x2: list, y2:list, label1:str, label2:str, 
         lat2,lon2 = local_to_gps_coord(x2,y2)
         formatted_coords2 = _format_lat_lon(lat2, lon2)
         coord_tag_2.text = formatted_coords2 
-    with open(f"/output/{dataset_date}_{label1}.kml", 'wb') as f:
+    with open(f"./output/{dataset_date}_{label1}.kml", 'wb') as f:
         f.write(etree.tostring(root, xml_declaration=True, encoding='UTF-8', pretty_print=True))
 
 def plot_position_comparison_2D(x1: list, y1:list, x2: list, y2:list, est_type:str, label2:str, dataset_date:str = None):
@@ -123,7 +123,7 @@ def plot_position_comparison_2D_scatter(x1: list, y1:list, x2: list, y2:list, la
 
 def save_results(x_est:np.ndarray, P_est:np.ndarray, x_true_arr:np.ndarray, y_true_arr:np.ndarray, theta_true_arr:np.ndarray, t:np.ndarray, dataset_date:str):
     # Save to files
-    with open(f"/output/{dataset_date}.npy", 'wb') as f:
+    with open(f"./output/{dataset_date}.npy", 'wb') as f:
         np.save(f, np.asarray(x_est))
         np.save(f, np.asarray(P_est))
         np.save(f, np.asarray(x_true_arr))
@@ -135,7 +135,7 @@ def save_results(x_est:np.ndarray, P_est:np.ndarray, x_true_arr:np.ndarray, y_tr
     euclidean_error = np.sqrt(np.power(x_est[:,0] - x_true_arr, 2) + np.power(x_est[:,1] - y_true_arr,2))
     print(f"Mean Euclidean Error: {np.mean(euclidean_error)}")
     print(f"Std Dev. Euclidean Error: {np.std(euclidean_error)}")
-    with open("/output/error_results.csv", 'a') as f:
+    with open("./output/error_results.csv", 'a') as f:
         w = writer(f)
         w.writerow([dataset_date, np.mean(euclidean_error), np.std(euclidean_error)])
 
@@ -216,7 +216,7 @@ def plot_states(x_est:np.ndarray, P_est:np.ndarray, x_true_arr:np.ndarray, y_tru
 def load_results():
     """Load EKF results from exported numpy file, for plotting"""
     
-    with open('/output/2013-04-05.npy', 'rb') as f:
+    with open('./output/2013-04-05.npy', 'rb') as f:
         x_est           = np.load(f)
         P_est           = np.load(f)
         x_true_arr      = np.load(f)
