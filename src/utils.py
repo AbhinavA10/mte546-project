@@ -101,7 +101,7 @@ def plot_position_comparison_2D(x1: list, y1:list, x2: list, y2:list, est_type:s
     plt.ylabel('North [m]')
     if dataset_date is not None:
         fig = plt.gcf()
-        fig.savefig(f"{dataset_date}_{est_type} vs {label2}.png", dpi=300)
+        fig.savefig(f"./output/{dataset_date}_{est_type} vs {label2}.png", dpi=300)
     # plt.show()
 
 
@@ -135,7 +135,7 @@ def save_results(x_est:np.ndarray, P_est:np.ndarray, x_true_arr:np.ndarray, y_tr
     euclidean_error = np.sqrt(np.power(x_est[:,0] - x_true_arr, 2) + np.power(x_est[:,1] - y_true_arr,2))
     print(f"Mean Euclidean Error: {np.mean(euclidean_error)}")
     print(f"Std Dev. Euclidean Error: {np.std(euclidean_error)}")
-    with open("./output/error_results.csv", 'a') as f:
+    with open("./output/error_results.csv", 'a', newline='') as f:
         w = writer(f)
         w.writerow([dataset_date, np.mean(euclidean_error), np.std(euclidean_error)])
 
