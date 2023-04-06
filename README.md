@@ -6,13 +6,15 @@
 - `pip install matplotlib numpy pandas sympy scipy lxml`
 
 ## Running:
+
 From `src` folder, 
 - `python read_ground_truth.py`
 - `python read_gps.py`
 - `python read_wheels.py`
 - `python read_imu.py`
 - `python IMU_processing.py`
-- `python EKF.py`
+- `python EKF.py 2013-04-05`
+- `python run_all.py`
 
  Other Examples:
 - `python .\examples\read_gps.py .\dataset\2012-01-08\gps.csv`

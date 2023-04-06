@@ -4,6 +4,7 @@ import numpy as np
 from lxml import etree
 import matplotlib.pyplot as plt
 import pandas as pd
+from csv import writer
 
 def _compute_gps_conversion_params():
     # Compute radii of Earth at origin of linearization
@@ -81,24 +82,27 @@ def export_to_kml(x1: list, y1:list, x2: list, y2:list, label1:str, label2:str, 
         lat2,lon2 = local_to_gps_coord(x2,y2)
         formatted_coords2 = _format_lat_lon(lat2, lon2)
         coord_tag_2.text = formatted_coords2 
-    with open(f"{dataset_date}.kml", 'wb') as f:
+    with open(f"/output/{dataset_date}_{label1}.kml", 'wb') as f:
         f.write(etree.tostring(root, xml_declaration=True, encoding='UTF-8', pretty_print=True))
 
-def plot_position_comparison_2D(x1: list, y1:list, x2: list, y2:list, label1:str, label2:str):
+def plot_position_comparison_2D(x1: list, y1:list, x2: list, y2:list, est_type:str, label2:str, dataset_date:str = None):
     """Plot local frame ground truth and estimated coords on x-y line plot
     Parameters: 
     - local frame estimated coords (x,y) = (North, East) [meters]
     - local frame ground truth coords (x_gt,y_gt) = (North, East) [meters]
     """
-    plt.figure()
-    plt.plot(y1, x1, c='b', linewidth=1, label=label1) # plot flipped since North,East
+    plt.figure(figsize=(15,10))
+    plt.plot(y1, x1, c='b', linewidth=1, label=est_type) # plot flipped since North,East
     plt.scatter(y2, x2, c='r', s=1, linewidth=1, label=label2)
     plt.axis('equal')
     plt.legend()
     plt.title('Comparison')
     plt.xlabel('East [m]')
     plt.ylabel('North [m]')
-    plt.show()
+    if dataset_date is not None:
+        fig = plt.gcf()
+        fig.savefig(f"{dataset_date}_{est_type} vs {label2}.png", dpi=300)
+    # plt.show()
 
 
 def plot_position_comparison_2D_scatter(x1: list, y1:list, x2: list, y2:list, label1:str, label2:str):
@@ -119,13 +123,21 @@ def plot_position_comparison_2D_scatter(x1: list, y1:list, x2: list, y2:list, la
 
 def save_results(x_est:np.ndarray, P_est:np.ndarray, x_true_arr:np.ndarray, y_true_arr:np.ndarray, theta_true_arr:np.ndarray, t:np.ndarray, dataset_date:str):
     # Save to files
-    with open(f"{dataset_date}.npy", 'wb') as f:
+    with open(f"/output/{dataset_date}.npy", 'wb') as f:
         np.save(f, np.asarray(x_est))
         np.save(f, np.asarray(P_est))
         np.save(f, np.asarray(x_true_arr))
         np.save(f, np.asarray(y_true_arr))
         np.save(f, np.asarray(theta_true_arr))
         np.save(f, np.asarray(t))
+    
+    # Error calculation
+    euclidean_error = np.sqrt(np.power(x_est[:,0] - x_true_arr, 2) + np.power(x_est[:,1] - y_true_arr,2))
+    print(f"Mean Euclidean Error: {np.mean(euclidean_error)}")
+    print(f"Std Dev. Euclidean Error: {np.std(euclidean_error)}")
+    with open("/output/error_results.csv", 'a') as f:
+        w = writer(f)
+        w.writerow([dataset_date, np.mean(euclidean_error), np.std(euclidean_error)])
 
 def plot_states(x_est:np.ndarray, P_est:np.ndarray, x_true_arr:np.ndarray, y_true_arr:np.ndarray, theta_true_arr:np.ndarray, t:np.ndarray):
 
@@ -192,30 +204,19 @@ def plot_states(x_est:np.ndarray, P_est:np.ndarray, x_true_arr:np.ndarray, y_tru
     plt.xlabel('Time [s]')
     plt.ylabel('Omega [rad/s]')
 
-    # plot errors
-    euclidean_error = np.sqrt(np.power(x_est[:,0] - x_true_arr, 2) + np.power(x_est[:,1] - y_true_arr,2))
-    print(f"Mean Euclidean Error: {np.mean(euclidean_error)}")
-    print(f"Std Dev. Euclidean Error: {np.std(euclidean_error)}")
-    
+    # Error calculation
+    euclidean_error = np.sqrt(np.power(x_est[:,0] - x_true_arr, 2) + np.power(x_est[:,1] - y_true_arr,2))  
     plt.figure()
-    plt.subplot(2, 1, 1)
     plt.plot(t,euclidean_error)
     plt.title('Euclidean Distance Error from Ground Truth')
     plt.xlabel('Time [s]')
     plt.ylabel('Euclidean Dist. From Ground Truth [m]')
-    heading_error = x_est[:,4] - theta_true_arr
-    plt.subplot(2, 1, 2)
-    plt.plot(t, heading_error)
-    plt.title('Error in Theta from Ground Truth')
-    plt.xlabel('Time [s]')
-    plt.ylabel('Error in Theta [rad]')
-    
     plt.show()
 
 def load_results():
     """Load EKF results from exported numpy file, for plotting"""
     
-    with open('2013-04-05.npy', 'rb') as f:
+    with open('/output/2013-04-05.npy', 'rb') as f:
         x_est           = np.load(f)
         P_est           = np.load(f)
         x_true_arr      = np.load(f)
@@ -224,7 +225,7 @@ def load_results():
         t               = np.load(f)
             
     plot_position_comparison_2D(x_est[:,0], x_est[:,1], x_true_arr, y_true_arr, "Estimated", "Ground Truth")
-    plot_states(x_est, P_est, x_true_arr, y_true_arr, theta_true_arr, t, save_results=False)    
+    plot_states(x_est, P_est, x_true_arr, y_true_arr, theta_true_arr, t)    
 
 if __name__=="__main__":
     load_results()

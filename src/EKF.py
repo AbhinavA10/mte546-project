@@ -2,6 +2,7 @@
 import math
 import numpy as np
 import sympy as sp
+import argparse
 
 import utils
 import read_imu
@@ -39,11 +40,31 @@ if USE_WHEEL_AS_INPUT:
                  0.001,  # theta
                  0.01])   # omega
 
-FILE_DATES = ["2012-01-08", "2012-01-15", "2012-01-22", "2012-02-02", "2012-02-04", "2012-02-05", "2012-02-12", 
-              "2012-02-18", "2012-02-19", "2012-03-17", "2012-03-25", "2012-03-31", "2012-04-29", "2012-05-11", 
-              "2012-05-26", "2012-06-15", "2012-08-04", "2012-08-20", "2012-09-28", "2012-10-28", "2012-11-04", 
-              "2012-11-16", "2012-11-17", "2012-12-01", "2013-01-10", "2013-02-23", "2013-04-05"]
 ROBOT_WIDTH_WHEEL_BASE = 0.562356 # T [m], From SolidWorks Model
+
+LABEL_ESTIMATION_TYPE = ""
+if USE_GPS_AS_INPUT:
+    if USE_RTK:
+        LABEL_ESTIMATION_TYPE = "GPS RTK"
+    else:
+        LABEL_ESTIMATION_TYPE = "GPS"
+elif USE_WHEEL_AS_INPUT:
+    if USE_GPS_FOR_CORRECTION:
+        LABEL_ESTIMATION_TYPE = "Estimated - Wheels with GPS"
+    else:
+        LABEL_ESTIMATION_TYPE = "Estimated - Wheels Only"
+else:
+    LABEL_ESTIMATION_TYPE = "Estimated - IMU "
+    if USE_GPS_FOR_CORRECTION and USE_WHEEL_FOR_CORRECTION:
+        LABEL_ESTIMATION_TYPE = "with Wheels and GPS"  
+    elif USE_GPS_FOR_CORRECTION:
+        LABEL_ESTIMATION_TYPE = "with GPS"
+    elif USE_WHEEL_FOR_CORRECTION:
+        LABEL_ESTIMATION_TYPE = "with Wheels"
+    else:
+        LABEL_ESTIMATION_TYPE = "Only"
+
+LABEL_ESTIMATION_TYPE += f" {KALMAN_FILTER_RATE}Hz"
 
 def wraptopi(x):
     """
@@ -258,18 +279,22 @@ def find_nearest_index(array:np.ndarray, time): # array of timesteps, time to se
     return idx
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('filedate')
+    args = parser.parse_args()
+    FILE_DATE = args.filedate
 
     ######################### 0. INITIALIZE IMPORTANT VARIABLES #################################################################
     
     # CURRENT STATE MODEL IS: X = [x, y, x_dot, y_dot, theta, omega]
     # CURRENT INPUT MODEL IS: U = [ax, ay, omega]
 
-    gps_data     = read_gps.read_gps(FILE_DATES[-1], USE_RTK) # 2.5 or 6 Hz
-    imu_data     = read_imu.read_imu(FILE_DATES[-1]) # 47 Hz
-    euler_data     = read_imu.read_euler(FILE_DATES[-1]) # 47 Hz
-    fog_data     = read_FOG.read_FOG(FILE_DATES[-1]) # 97 Hz
-    wheel_data   = read_wheels.read_wheels(FILE_DATES[-1]) # 37 Hz
-    ground_truth = read_ground_truth.read_ground_truth(FILE_DATES[-1], truncation=TRUNCATION_END) # 107 Hz
+    gps_data     = read_gps.read_gps(FILE_DATE, USE_RTK) # 2.5 or 6 Hz
+    imu_data     = read_imu.read_imu(FILE_DATE) # 47 Hz
+    euler_data     = read_imu.read_euler(FILE_DATE) # 47 Hz
+    fog_data     = read_FOG.read_FOG(FILE_DATE) # 97 Hz
+    wheel_data   = read_wheels.read_wheels(FILE_DATE) # 37 Hz
+    ground_truth = read_ground_truth.read_ground_truth(FILE_DATE, truncation=TRUNCATION_END) # 107 Hz
     #Truncate data to first few datapoints, for testing
     ground_truth = ground_truth[:TRUNCATION_END,:]
     gps_data     = gps_data[:TRUNCATION_END,:]
@@ -397,7 +422,7 @@ if __name__ == "__main__":
 
     print('Done! Plotting now.')
     ###### PLOT DELIVERABLES #########################################################################################
-    utils.export_to_kml(x_est[:,0], x_est[:,1], x_true_arr, y_true_arr, "Estimated", "Ground Truth", FILE_DATES[-1])
-    utils.save_results(x_est, P_est, x_true_arr, y_true_arr, theta_true_arr, t, FILE_DATES[-1])
-    # utils.plot_position_comparison_2D(x_est[:,0], x_est[:,1], x_true_arr, y_true_arr, "Estimated", "Ground Truth")
+    utils.export_to_kml(x_est[:,0], x_est[:,1], x_true_arr, y_true_arr, LABEL_ESTIMATION_TYPE, "Ground Truth", FILE_DATE)
+    utils.save_results(x_est, P_est, x_true_arr, y_true_arr, theta_true_arr, t, f"{FILE_DATE}_{LABEL_ESTIMATION_TYPE}")
+    utils.plot_position_comparison_2D(x_est[:,0], x_est[:,1], x_true_arr, y_true_arr, LABEL_ESTIMATION_TYPE, "Ground Truth", FILE_DATE)
     # utils.plot_states(x_est, P_est, x_true_arr, y_true_arr, theta_true_arr, t)
