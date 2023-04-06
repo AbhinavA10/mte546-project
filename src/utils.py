@@ -53,7 +53,7 @@ def _format_lat_lon(lat: list, lon:list):
     l = ["            {},{},1".format(lo, la) for la, lo in zip(lat, lon)]
     return "\n".join(l)
 
-def export_to_kml(x1: list, y1:list, x2: list, y2:list, label1:str, label2:str, subsample=False):
+def export_to_kml(x1: list, y1:list, x2: list, y2:list, label1:str, label2:str, dataset_date:str, subsample=False):
     """Export list of local frame ground truth and estimated coords to KML file
     Parameters: 
     - local frame estimated coords (x,y) = (North, East) [meters]
@@ -70,9 +70,6 @@ def export_to_kml(x1: list, y1:list, x2: list, y2:list, label1:str, label2:str, 
     coord_tag_1 = tags[0]
     coord_tag_2 = tags[1]
     if x1 is not None:
-        # if subsample:
-            # x1 = x1[1::200] # sample every 200th point
-            # y1 = y1[1::200] # sample every 200th point
         lat1,lon1 = local_to_gps_coord(x1,y1)
         formatted_coords1 = _format_lat_lon(lat1, lon1)
         coord_tag_1.text = formatted_coords1
@@ -84,7 +81,7 @@ def export_to_kml(x1: list, y1:list, x2: list, y2:list, label1:str, label2:str, 
         lat2,lon2 = local_to_gps_coord(x2,y2)
         formatted_coords2 = _format_lat_lon(lat2, lon2)
         coord_tag_2.text = formatted_coords2 
-    with open('output.kml', 'wb') as f:
+    with open(f"{dataset_date}.kml", 'wb') as f:
         f.write(etree.tostring(root, xml_declaration=True, encoding='UTF-8', pretty_print=True))
 
 def plot_position_comparison_2D(x1: list, y1:list, x2: list, y2:list, label1:str, label2:str):
@@ -120,16 +117,17 @@ def plot_position_comparison_2D_scatter(x1: list, y1:list, x2: list, y2:list, la
     plt.ylabel('North [m]')
     plt.show(),
 
-def plot_states(x_est:np.ndarray, P_est:np.ndarray, x_true_arr:np.ndarray, y_true_arr:np.ndarray, theta_true_arr:np.ndarray, t:np.ndarray, save_results=True):
-    if save_results:
-        # Save to files
-        with open('output.npy', 'wb') as f:
-            np.save(f, np.asarray(x_est))
-            np.save(f, np.asarray(P_est))
-            np.save(f, np.asarray(x_true_arr))
-            np.save(f, np.asarray(y_true_arr))
-            np.save(f, np.asarray(theta_true_arr))
-            np.save(f, np.asarray(t))
+def save_results(x_est:np.ndarray, P_est:np.ndarray, x_true_arr:np.ndarray, y_true_arr:np.ndarray, theta_true_arr:np.ndarray, t:np.ndarray, dataset_date:str):
+    # Save to files
+    with open(f"{dataset_date}.npy", 'wb') as f:
+        np.save(f, np.asarray(x_est))
+        np.save(f, np.asarray(P_est))
+        np.save(f, np.asarray(x_true_arr))
+        np.save(f, np.asarray(y_true_arr))
+        np.save(f, np.asarray(theta_true_arr))
+        np.save(f, np.asarray(t))
+
+def plot_states(x_est:np.ndarray, P_est:np.ndarray, x_true_arr:np.ndarray, y_true_arr:np.ndarray, theta_true_arr:np.ndarray, t:np.ndarray):
 
     # x_est = x | y | xdot | ydot | theta | omega
     x       = x_est[:,0]
@@ -144,6 +142,8 @@ def plot_states(x_est:np.ndarray, P_est:np.ndarray, x_true_arr:np.ndarray, y_tru
     P_y     = P[:,1]
     P_xdot  = P[:,2]
     P_ydot  = P[:,3]
+    
+    t = t - [0] # Make timestamps relative
     
     # x,y,theta over time vs Ground Truth, with uncertainties
     plt.figure()
@@ -194,6 +194,9 @@ def plot_states(x_est:np.ndarray, P_est:np.ndarray, x_true_arr:np.ndarray, y_tru
 
     # plot errors
     euclidean_error = np.sqrt(np.power(x_est[:,0] - x_true_arr, 2) + np.power(x_est[:,1] - y_true_arr,2))
+    print(f"Mean Euclidean Error: {np.mean(euclidean_error)}")
+    print(f"Std Dev. Euclidean Error: {np.std(euclidean_error)}")
+    
     plt.figure()
     plt.subplot(2, 1, 1)
     plt.plot(t,euclidean_error)
@@ -212,7 +215,7 @@ def plot_states(x_est:np.ndarray, P_est:np.ndarray, x_true_arr:np.ndarray, y_tru
 def load_results():
     """Load EKF results from exported numpy file, for plotting"""
     
-    with open('output.npy', 'rb') as f:
+    with open('2013-04-05.npy', 'rb') as f:
         x_est           = np.load(f)
         P_est           = np.load(f)
         x_true_arr      = np.load(f)
@@ -220,7 +223,8 @@ def load_results():
         theta_true_arr  = np.load(f)
         t               = np.load(f)
             
-    plot_states(x_est, P_est, x_true_arr, y_true_arr, theta_true_arr, t, save_results=False)
+    plot_position_comparison_2D(x_est[:,0], x_est[:,1], x_true_arr, y_true_arr, "Estimated", "Ground Truth")
+    plot_states(x_est, P_est, x_true_arr, y_true_arr, theta_true_arr, t, save_results=False)    
 
 if __name__=="__main__":
     load_results()

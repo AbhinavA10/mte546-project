@@ -254,10 +254,8 @@ def find_nearest_index(array:np.ndarray, time): # array of timesteps, time to se
     """Find closest time in array, that has already passed"""
     diff_arr = array - time
     idx = np.where(diff_arr <= 0, diff_arr, -np.inf).argmax()
+    # [-0.02 +0.02 +2] becomes  [-0.02  -inf -inf]
     return idx
-
-# [-0.02 +0.02 +2]
-# [-0.02  -inf -inf]
 
 if __name__ == "__main__":
 
@@ -399,6 +397,7 @@ if __name__ == "__main__":
 
     print('Done! Plotting now.')
     ###### PLOT DELIVERABLES #########################################################################################
-    utils.export_to_kml(x_est[:,0], x_est[:,1], x_true_arr, y_true_arr, "Estimated", "Ground Truth")
-    utils.plot_position_comparison_2D(x_est[:,0], x_est[:,1], x_true_arr, y_true_arr, "Estimated", "Ground Truth")
-    utils.plot_states(x_est, P_est, x_true_arr, y_true_arr, theta_true_arr, t)
+    utils.export_to_kml(x_est[:,0], x_est[:,1], x_true_arr, y_true_arr, "Estimated", "Ground Truth", FILE_DATES[-1])
+    utils.save_results(x_est, P_est, x_true_arr, y_true_arr, theta_true_arr, t, FILE_DATES[-1])
+    # utils.plot_position_comparison_2D(x_est[:,0], x_est[:,1], x_true_arr, y_true_arr, "Estimated", "Ground Truth")
+    # utils.plot_states(x_est, P_est, x_true_arr, y_true_arr, theta_true_arr, t)

@@ -1,3 +1,5 @@
+# Testing extracting diagonal from list of P matricies
+
 import numpy as np
 
 N     = 4
