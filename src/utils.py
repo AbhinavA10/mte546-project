@@ -213,20 +213,3 @@ def plot_states(x_est:np.ndarray, P_est:np.ndarray, x_true_arr:np.ndarray, y_tru
     plt.xlabel('Time [s]')
     plt.ylabel('Euclidean Dist. From Ground Truth [m]')
     plt.show()
-
-def load_results():
-    """Load EKF results from exported numpy file, for plotting"""
-    
-    with open('./output/2013-04-05.npy', 'rb') as f:
-        x_est           = np.load(f)
-        P_est           = np.load(f)
-        x_true_arr      = np.load(f)
-        y_true_arr      = np.load(f)
-        theta_true_arr  = np.load(f)
-        t               = np.load(f)
-            
-    plot_position_comparison_2D(x_est[:,0], x_est[:,1], x_true_arr, y_true_arr, "Estimated", "Ground Truth")
-    plot_states(x_est, P_est, x_true_arr, y_true_arr, theta_true_arr, t)    
-
-if __name__=="__main__":
-    load_results()
