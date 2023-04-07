@@ -136,3 +136,4 @@ src/dataset/
 !template.kml
 !sample.kml
 *.png
+!error_results.csv

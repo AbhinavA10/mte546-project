@@ -26,3 +26,13 @@ From `src` folder,
 | 0 | 1 | 1 | 0 | Use IMU as input, correct with GPS and Wheels |
 | 1 | 0 | x | 0 | Use Wheel as input, no corrections. Implicitly uses IMU's theta |
 | 1 | 1 | x | 0 | Use Wheel as input, correct with GPS |
+
+
+## Paths
+The following paths do not have readable wheel velocities:
+- `2012-01-08`
+- `2012-01-22`
+- `2012-02-12`
+- `2012-03-17`
+- `2012-05-26`
+- `2012-06-15`
