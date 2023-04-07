@@ -56,13 +56,13 @@ elif USE_WHEEL_AS_INPUT:
 else:
     LABEL_ESTIMATION_TYPE = "Estimated - IMU "
     if USE_GPS_FOR_CORRECTION and USE_WHEEL_FOR_CORRECTION:
-        LABEL_ESTIMATION_TYPE = "with Wheels and GPS"  
+        LABEL_ESTIMATION_TYPE += "with Wheels and GPS"  
     elif USE_GPS_FOR_CORRECTION:
-        LABEL_ESTIMATION_TYPE = "with GPS"
+        LABEL_ESTIMATION_TYPE += "with GPS"
     elif USE_WHEEL_FOR_CORRECTION:
-        LABEL_ESTIMATION_TYPE = "with Wheels"
+        LABEL_ESTIMATION_TYPE += "with Wheels"
     else:
-        LABEL_ESTIMATION_TYPE = "Only"
+        LABEL_ESTIMATION_TYPE += "Only"
 
 LABEL_ESTIMATION_TYPE += f" {KALMAN_FILTER_RATE}Hz"
 

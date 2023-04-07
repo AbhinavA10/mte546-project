@@ -102,7 +102,8 @@ def plot_position_comparison_2D(x1: list, y1:list, x2: list, y2:list, est_type:s
     if dataset_date is not None:
         fig = plt.gcf()
         fig.savefig(f"./output/{dataset_date}_{est_type} vs {label2}.png", dpi=300)
-    # plt.show()
+    else:
+        plt.show()
 
 
 def plot_position_comparison_2D_scatter(x1: list, y1:list, x2: list, y2:list, label1:str, label2:str):

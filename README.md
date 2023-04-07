@@ -13,15 +13,8 @@ From `src` folder,
 - `python read_wheels.py`
 - `python read_imu.py`
 - `python IMU_processing.py`
-- `python EKF.py 2013-04-05`
-- `python run_all.py`
-
- Other Examples:
-- `python .\examples\read_gps.py .\dataset\2012-01-08\gps.csv`
-- `python .\examples\read_gps.py .\dataset\2012-01-08\gps_rtk.csv`
-- `python .\examples\read_ground_truth.py .\dataset\2012-01-08\groundtruth_2012-01-08.csv .\dataset\2012-01-08\odometry_cov_100hz.csv`
-- `python .\examples\export_kml.py` Sample script for exporting data to kml
-
+- `python EKF.py 2013-04-05`: Run EKF with config given in `EKF.py` for the given path
+- `python run_all.py`: Run EKF with config given in `EKF.py` for all paths in the dataset
 
 ## EKF Configuration
 
