@@ -58,9 +58,9 @@ def plot_gps(filepath, use_rtk=False):
     y = gps[:,2]
 
     plt.figure()
-    # plt.scatter(y, x, s=1, linewidth=0) # plot flipped since North,East
-    plt.scatter(y, x, c=t, s=5, linewidth=0) # Plot color over time
-    plt.colorbar()
+    plt.scatter(y, x, s=1, linewidth=0) # plot flipped since North,East
+    # plt.scatter(y, x, c=t, s=5, linewidth=0) # Plot color over time
+    # plt.colorbar()
     plt.xlabel('East [m]')
     plt.ylabel('North [m]')
     plt.axis('equal')

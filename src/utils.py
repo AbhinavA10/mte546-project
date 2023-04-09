@@ -160,7 +160,7 @@ def plot_states(x_est:np.ndarray, P_est:np.ndarray, x_true_arr:np.ndarray, y_tru
     
     # x,y,theta over time vs Ground Truth, with uncertainties
     plt.figure()
-    plt.subplot(3, 1, 1)
+    plt.subplot(2, 1, 1)
     plt.plot(t,x, label="x")
     plt.plot(t,x_true_arr, label="x_true")
     plt.plot(t,x+np.sqrt(P_x),'r--', label="_Uncertainity Bound") # _ hides from legend
@@ -168,7 +168,7 @@ def plot_states(x_est:np.ndarray, P_est:np.ndarray, x_true_arr:np.ndarray, y_tru
     plt.legend()
     plt.xlabel('Time [s]')
     plt.ylabel('X Position [m]')
-    plt.subplot(3, 1, 2)
+    plt.subplot(2, 1, 2)
     plt.plot(t,y, label="y")
     plt.plot(t,y_true_arr, label="y_true")
     plt.plot(t,y+np.sqrt(P_y),'r--', label="_Uncertainity Bound")
@@ -176,13 +176,7 @@ def plot_states(x_est:np.ndarray, P_est:np.ndarray, x_true_arr:np.ndarray, y_tru
     plt.legend()
     plt.xlabel('Time [s]')
     plt.ylabel('Y Position [m]')
-    plt.subplot(3, 1, 3)
-    plt.plot(t,theta, label="theta")
-    plt.plot(t,theta_true_arr, label="theta_true")
-    plt.legend()
-    plt.xlabel('Time [s]')
-    plt.ylabel('Theta [rad]')
-
+    
     # Plot other states over time, with uncertainites
     plt.figure()
     plt.subplot(3, 1, 1)
@@ -212,4 +206,12 @@ def plot_states(x_est:np.ndarray, P_est:np.ndarray, x_true_arr:np.ndarray, y_tru
     plt.title('Euclidean Distance Error from Ground Truth')
     plt.xlabel('Time [s]')
     plt.ylabel('Euclidean Dist. From Ground Truth [m]')
+
+    plt.figure()
+    counts, bins = np.histogram(euclidean_error)
+    plt.hist(bins[:-1], bins, weights=counts)
+    plt.title('Euclidean Distance Error Histogram')
+    plt.xlabel('Error Bin')
+    plt.ylabel('Count')
+
     plt.show()
