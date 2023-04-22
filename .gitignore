@@ -130,10 +130,10 @@ dmypy.json
 .DS_Store
 
 src/dataset/
+src/output/
 *.csv
 *.npy
 *.kml
 !template.kml
 !sample.kml
-*.png
 !error_results.csv
